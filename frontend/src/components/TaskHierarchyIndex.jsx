@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
  * tarea si es raíz) y todas las hijas directas, resaltando la tarea actual.
  * Se presenta como un panel fijo a la derecha para seguir visible al hacer scroll.
  */
-export default function TaskHierarchyIndex({ task, tasks, onSelect }) {
+export default function TaskHierarchyIndex({ task, tasks, onSelect, onGoHome }) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
   const toggleRef = useRef(null);
@@ -92,6 +92,15 @@ export default function TaskHierarchyIndex({ task, tasks, onSelect }) {
               ×
             </button>
           </div>
+
+          <button
+            type="button"
+            className="button button--ghost hierarchy-drawer__home"
+            onClick={onGoHome}
+          >
+            <span aria-hidden="true">←</span>
+            Volver a la pantalla principal
+          </button>
 
           <nav className="hierarchy-index" aria-label="Jerarquía de tareas">
             <div className="hierarchy-index__group">

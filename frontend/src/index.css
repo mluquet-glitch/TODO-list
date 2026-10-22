@@ -1156,6 +1156,15 @@ label.checkbox-chip--active {
   outline-offset: 2px;
 }
 
+.hierarchy-drawer__home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin-bottom: 0.9rem;
+}
+
 @keyframes hierarchy-drawer-in {
   from {
     opacity: 0;

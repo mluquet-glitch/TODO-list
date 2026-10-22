@@ -730,7 +730,7 @@ frontend/
 | `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y su opción deja de estar marcada en el desplegable. |
 | `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, fecha límite, estado, prioridad y categorías. Acepta `parentTaskId`, `heading` y `submitLabel` para crear subtareas. |
 | `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, fecha límite, estado, prioridad, categorías, guardado y borrado. |
-| `src/components/TaskHierarchyIndex.jsx` | Índice lateral fijo con la tarea padre (la propia si es raíz) y todas sus hijas directas; la tarea abierta se marca en rojo, cada entrada permite navegar y el panel se abre/cierra sin perder la posición al hacer scroll. |
+| `src/components/TaskHierarchyIndex.jsx` | Índice lateral fijo con la tarea padre (la propia si es raíz) y todas sus hijas directas; incluye un botón para volver a la pantalla principal, la tarea abierta se marca en rojo, cada entrada permite navegar y el panel se abre/cierra sin perder la posición al hacer scroll. |
 | `src/components/TaskItem.jsx` | Título-botón, vista previa de descripción en una línea, fecha límite (en rojo si está vencida), badges, toggle de subtareas clicables y acciones de estado/borrado. |
 | `src/components/TaskList.jsx` | Agrupa las hijas por `parentTaskId` y renderiza la lista o los estados de carga/vacío; reenvía la apertura del detalle. |
 | `src/components/Alert.jsx` | Mensaje `role="alert"` con reintentar/cerrar. |
@@ -762,8 +762,9 @@ frontend/
 - En el lateral derecho hay un **índice de jerarquía fijo y desplegable**: el botón «Índice»
   permanece visible al hacer scroll y abre un panel con la tarea padre (o la propia tarea si es
   raíz) y todas sus hijas directas. Cada entrada es un botón para navegar y la tarea abierta se
-  resalta en rojo. El panel se cierra con su botón ×, con `Escape` o haciendo clic fuera; en móvil
-  ocupa el ancho disponible y el disparador pasa a la esquina inferior derecha.
+  resalta en rojo. El panel incluye el botón **← Volver a la pantalla principal**, se cierra con su
+  botón ×, con `Escape` o haciendo clic fuera; en móvil ocupa el ancho disponible y el disparador
+  pasa a la esquina inferior derecha.
 - Después aparece la tarjeta **Editar tarea** (datos y categorías), fuera de cualquier listado.
   Debajo aparece el mismo `TaskForm` de alta, configurado con `parentTaskId`, `heading` y
   `submitLabel`, por lo que lo que se cree ahí queda enlazado como subtarea.
@@ -1015,6 +1016,7 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | Tarjetas con fecha y sin fecha | fecha formateada en español; «Sin fecha» no muestra línea |
 | Tarea pendiente con fecha pasada | línea en rojo «Venció el …» |
 | Índice de jerarquía fijo a la derecha | posición fija comprobada tras hacer scroll; abre/cierra con botón, `Escape` y clic fuera |
+| Botón «Volver a la pantalla principal» del índice | cierra el detalle y restaura el listado principal |
 | Índice en móvil (390 px) | panel dentro del viewport; disparador en la esquina inferior derecha |
 | Tarea completada con fecha pasada | no se marca como vencida |
 | Filtros `Vencidas`, `Para hoy`, `Próximos 7 días` y `Sin fecha` | resultados correctos |

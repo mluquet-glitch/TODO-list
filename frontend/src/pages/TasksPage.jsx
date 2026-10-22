@@ -127,6 +127,7 @@ export default function TasksPage() {
           task={selectedTask}
           tasks={tasks}
           onSelect={setSelectedTaskId}
+          onGoHome={() => setSelectedTaskId(null)}
         />
 
         <div className="task-detail-page__topbar">
