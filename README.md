@@ -57,10 +57,12 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
   puede estar en varias tareas.
 - El formulario permite seleccionar varias categorías; las tarjetas muestran sus badges de color.
 - El botón **Filtros** abre un desplegable con todos los filtros disponibles (estado, prioridad y
-  categorías). Al elegir uno se añade como chip activo y desaparece del desplegable; al pulsar el
-  chip se retira y vuelve a estar disponible.
+  categorías). Se pueden activar varios a la vez, incluso varias categorías; las opciones activas se
+  marcan con ✓ y aparecen como chips. El panel permanece abierto para combinar filtros.
 - Dentro de un mismo tipo los filtros se combinan con OR; entre tipos distintos, con AND. La
   búsqueda por texto se aplica además.
+- Los mismos filtros multi-selección están disponibles en la pantalla principal y en el listado de
+  subtareas del detalle.
 - La API acepta `status`, `priority` y `categoryIds` multi-valor, además de `search`.
 - El panel **Gestionar categorías** muestra un toggle con todo el catálogo: selecciona una para
   **Actualizar** o **Eliminar**, escribe un nombre y pulsa **Agregar categoría** para crear una

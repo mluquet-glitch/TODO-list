@@ -58,9 +58,10 @@ Características principales:
 - Todas las rutas de `/api/tasks` y `/api/categories` requieren autenticación y cada usuario solo
   ve sus tareas.
 - **Categorías N:M**: una tarea puede tener varias categorías y una categoría varias tareas.
-- **Filtros dinámicos**: un desplegable reúne todos los filtros de la base de datos (estado,
-  prioridad y categorías); al elegir uno se convierte en un chip activo y, al pulsarlo de nuevo,
-  vuelve al desplegable.
+- **Filtros dinámicos multi-selección**: un desplegable reúne todos los filtros (estado, prioridad
+  y categorías). Se pueden activar varios a la vez, incluso varias categorías; las opciones activas
+  se marcan con ✓ y también aparecen como chips. Disponible en la pantalla principal y en el
+  listado de subtareas del detalle.
 - **Gestión de categorías**: panel con un toggle de todas las categorías y un formulario para
   agregar, actualizar y eliminar; Eliminar/Actualizar usan el toggle e Agregar usa el input.
 - **Detalle y subtareas**: el título de cada tarea es un botón que abre su detalle; allí se editan
@@ -673,7 +674,8 @@ frontend/
     │   ├── ActiveFilters.jsx      Chips de filtros activos y «Limpiar todo»
     │   ├── Alert.jsx              Mensajes de error accesibles
     │   ├── CategoryManager.jsx    Toggle + formulario CRUD de categorías
-    │   ├── FilterDropdown.jsx     Desplegable de filtros inactivos
+    │   ├── FilterDropdown.jsx     Desplegable de filtros multi-selección
+    │   ├── FilteredTaskList.jsx   Búsqueda + filtros + listado reutilizable
     │   ├── TaskDetail.jsx         Edición de la tarea abierta y sus categorías
     │   ├── TaskForm.jsx           Alta de tareas y subtareas (parentTaskId)
     │   ├── TaskHierarchyIndex.jsx Índice padre/hijas con la tarea actual en rojo
@@ -683,6 +685,7 @@ frontend/
     │   └── tasks.js               Estados y prioridades + etiquetas
     ├── hooks/
     │   ├── useCategories.js       Carga única del catálogo
+    │   ├── useTaskFilters.js      Búsqueda y filtros multi-valor compartidos
     │   └── useTasks.js            Estado y CRUD de tareas
     └── pages/
         ├── LoginPage.jsx          Login/registro en una pantalla
@@ -703,9 +706,11 @@ frontend/
 | `src/pages/TasksPage.jsx` | Hook de tareas, tarea abierta, contadores, búsqueda, filtros, gestión de categorías y separación entre tareas raíz e hijas. |
 | `src/hooks/useTasks.js` | Carga inicial y operaciones CRUD con `saving`/`error`; sincroniza la lista y replica en memoria el borrado en cascada de las subtareas. |
 | `src/hooks/useCategories.js` | Carga el catálogo y expone `categories`, `loading`, `saving`, `error` y las acciones CRUD; mantiene la lista ordenada. |
+| `src/hooks/useTaskFilters.js` | Encapsula búsqueda, filtros activos, grupos de opciones y el filtrado OR/AND. Permite varios estados, prioridades y categorías a la vez. |
 | `src/components/CategoryManager.jsx` | Toggle de todas las categorías + input y botones Agregar/Eliminar/Actualizar. Seleccionar un toggle rellena el input; Eliminar y Actualizar usan la categoría seleccionada e Agregar usa el texto. |
-| `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría); solo muestra opciones inactivas, cierra con clic fuera/Escape y permanece abierto al elegir. |
-| `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y reaparecen en el desplegable. |
+| `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría). Cada opción se activa/desactiva con `aria-pressed` y ✓; el panel permanece abierto para combinar varias. |
+| `src/components/FilteredTaskList.jsx` | Barra de búsqueda, desplegable, chips, listado y contador; se usa tanto en la pantalla principal como en las subtareas del detalle. |
+| `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y su opción deja de estar marcada en el desplegable. |
 | `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado, prioridad y categorías. Acepta `parentTaskId`, `heading` y `submitLabel` para crear subtareas. |
 | `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, estado, prioridad, categorías, guardado y borrado. |
 | `src/components/TaskHierarchyIndex.jsx` | Índice superior con la tarea padre (la propia si es raíz) y todas sus hijas directas; la tarea abierta se marca en rojo y cada entrada permite navegar. |
@@ -719,15 +724,17 @@ frontend/
 
 - El botón **Filtros** abre un desplegable con todos los valores filtrables del catálogo y los
   enums: estado, prioridad y categorías (estas últimas llegan de `GET /api/categories`).
-- Al hacer clic en una opción se añade un **chip activo** junto a la búsqueda; la opción desaparece
-  del desplegable (que permanece abierto para añadir más) y el contador del botón se incrementa.
-- Al pulsar un chip activo se retira el filtro y la opción vuelve al desplegable. «Limpiar todo»
+- Cada opción se puede **activar y desactivar** sin cerrar el panel. Las activas se marcan con ✓ y
+  se añaden como chips; el contador del botón refleja cuántos filtros hay activos. Se pueden tener
+  varias opciones del mismo tipo a la vez, incluidas **varias categorías**.
+- Al pulsar un chip activo se retira ese filtro y su opción deja de estar marcada. «Limpiar todo»
   retira todos los chips a la vez.
-- Dentro del mismo tipo los valores se combinan con **OR** (p. ej. `pending` o `in_progress`);
-  entre tipos distintos, con **AND** (estado + prioridad + categoría). La búsqueda por texto se
-  aplica además como AND.
-- El filtrado se hace en el cliente sobre las tareas ya cargadas, por lo que no hay peticiones
-  adicionales al cambiar de filtro.
+- Dentro del mismo tipo los valores se combinan con **OR** (p. ej. `pending` o `in_progress`, o
+  varias categorías); entre tipos distintos, con **AND** (estado + prioridad + categoría). La
+  búsqueda por texto se aplica además como AND.
+- `FilteredTaskList` + `useTaskFilters` aplican la misma lógica en la pantalla principal y en el
+  listado de subtareas del detalle. El filtrado se hace en el cliente sobre las tareas ya cargadas,
+  por lo que no hay peticiones adicionales al cambiar de filtro.
 
 ### Detalle y subtareas
 
@@ -739,8 +746,10 @@ frontend/
 - Después aparece la tarjeta **Editar tarea** (datos y categorías), fuera de cualquier listado.
   Debajo aparece el mismo `TaskForm` de alta, configurado con `parentTaskId`, `heading` y
   `submitLabel`, por lo que lo que se cree ahí queda enlazado como subtarea.
-- Más abajo se listan solo las hijas directas de la tarea abierta; sus títulos también abren su
-  propio detalle. El botón de volver regresa al padre si existe o al listado principal.
+- Más abajo se listan solo las hijas directas de la tarea abierta, con su propia barra de búsqueda
+  y los mismos filtros multi-selección; sus títulos también abren su propio detalle. El botón de
+  volver regresa al padre si existe o al listado principal. Los filtros del detalle se reinician al
+  cambiar de tarea.
 - La pantalla principal calcula `rootTasks = tasks.filter(parentTaskId === null)`; los contadores,
   filtros y búsqueda trabajan sobre esas tareas raíz. Las hijas se ven en el detalle de su padre.
 - Al guardar, `useTasks` actualiza la tarea en memoria y el detalle refleja los cambios sin recargar.
@@ -980,7 +989,7 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | `UPDATE tasks SET parent_task_id = id` directo en PostgreSQL | bloqueado por `chk_tasks_parent_not_self` |
 | `docs/Database.sql` ejecutado dos veces | OK; 5 tablas y 16 índices |
 | Seed sobre el esquema de `Database.sql` | OK (3 tareas, 4 categorías, 4 asignaciones) |
-| `npm run build` del frontend | OK (48 módulos) |
+| `npm run build` del frontend | OK (50 módulos) |
 | Sintaxis de todos los archivos del backend (`node --check`, 30 archivos) | OK |
 
 Suite funcional: **44 comprobaciones de tareas/categorías + 34 de CRUD de categorías + 26 de

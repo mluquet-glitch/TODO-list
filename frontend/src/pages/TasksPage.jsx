@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import ActiveFilters from '../components/ActiveFilters.jsx';
 import Alert from '../components/Alert.jsx';
 import CategoryManager from '../components/CategoryManager.jsx';
-import FilterDropdown from '../components/FilterDropdown.jsx';
+import FilteredTaskList from '../components/FilteredTaskList.jsx';
 import TaskDetail from '../components/TaskDetail.jsx';
 import TaskForm from '../components/TaskForm.jsx';
 import TaskHierarchyIndex from '../components/TaskHierarchyIndex.jsx';
-import TaskList from '../components/TaskList.jsx';
-import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
+import { TASK_STATUSES } from '../constants/tasks.js';
 import { useCategories } from '../hooks/useCategories.js';
+import { useTaskFilters } from '../hooks/useTaskFilters.js';
 import { useTasks } from '../hooks/useTasks.js';
 
 /** Página principal: formulario, filtros dinámicos y listado de tareas raíz. */
@@ -36,9 +35,9 @@ export default function TasksPage() {
     clearError: clearCategoriesError,
   } = useCategories();
 
-  const [search, setSearch] = useState('');
-  const [activeFilters, setActiveFilters] = useState([]);
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const mainFilters = useTaskFilters(categories);
+  const detailFilters = useTaskFilters(categories);
 
   const selectedTask = useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) ?? null,
@@ -59,59 +58,17 @@ export default function TasksPage() {
     [tasks],
   );
 
+  // Si cambiamos de tarea, el detalle empieza sin filtros.
+  useEffect(() => {
+    detailFilters.reset();
+  }, [selectedTaskId, detailFilters.reset]);
+
   // Si la tarea abierta se elimina, volvemos a la pantalla principal.
   useEffect(() => {
     if (selectedTaskId !== null && !loading && !selectedTask) {
       setSelectedTaskId(null);
     }
   }, [selectedTaskId, selectedTask, loading]);
-
-  // Opciones del desplegable: todos los valores filtrables de la base de datos.
-  const filterGroups = useMemo(
-    () => [
-      {
-        type: 'status',
-        label: 'Estado',
-        options: TASK_STATUSES.map(({ value, label }) => ({ value, label })),
-      },
-      {
-        type: 'priority',
-        label: 'Prioridad',
-        options: TASK_PRIORITIES.map(({ value, label }) => ({ value, label })),
-      },
-      {
-        type: 'category',
-        label: 'Categoría',
-        options: categories.map((category) => ({
-          value: category.id,
-          label: category.name,
-          color: category.color,
-        })),
-      },
-    ],
-    [categories],
-  );
-
-  const activeKeys = useMemo(
-    () => new Set(activeFilters.map((filter) => `${filter.type}:${filter.value}`)),
-    [activeFilters],
-  );
-
-  const selected = useMemo(
-    () =>
-      activeFilters.reduce(
-        (acc, filter) => {
-          acc[filter.type].add(filter.value);
-          return acc;
-        },
-        {
-          status: new Set(),
-          priority: new Set(),
-          category: new Set(),
-        },
-      ),
-    [activeFilters],
-  );
 
   const counts = useMemo(() => {
     return rootTasks.reduce(
@@ -124,70 +81,25 @@ export default function TasksPage() {
     );
   }, [rootTasks]);
 
-  const visibleTasks = useMemo(() => {
-    const term = search.trim().toLowerCase();
-
-    return rootTasks.filter((task) => {
-      const matchesStatus =
-        selected.status.size === 0 || selected.status.has(task.status);
-      const matchesPriority =
-        selected.priority.size === 0 || selected.priority.has(task.priority);
-      const matchesCategory =
-        selected.category.size === 0 ||
-        (task.categories ?? []).some((category) =>
-          selected.category.has(category.id),
-        );
-      const matchesSearch =
-        !term ||
-        task.title.toLowerCase().includes(term) ||
-        (task.description ?? '').toLowerCase().includes(term);
-
-      return matchesStatus && matchesPriority && matchesCategory && matchesSearch;
-    });
-  }, [rootTasks, search, selected]);
-
-  function addFilter(filter) {
-    setActiveFilters((current) => {
-      const exists = current.some(
-        (item) => item.type === filter.type && item.value === filter.value,
-      );
-      return exists ? current : [...current, filter];
-    });
-  }
-
-  function removeFilter(filter) {
-    setActiveFilters((current) =>
-      current.filter(
-        (item) => !(item.type === filter.type && item.value === filter.value),
-      ),
-    );
-  }
-
-  /** Mantiene sincronizados los chips activos cuando se renombra una categoría. */
+  /** Mantiene los chips sincronizados cuando se renombra una categoría. */
   async function handleUpdateCategory(id, changes) {
     const updated = await updateCategory(id, changes);
 
     if (updated) {
-      setActiveFilters((current) =>
-        current.map((filter) =>
-          filter.type === 'category' && filter.value === id
-            ? { ...filter, label: updated.name, color: updated.color }
-            : filter,
-        ),
-      );
+      mainFilters.updateCategoryFilter(id, updated);
+      detailFilters.updateCategoryFilter(id, updated);
     }
 
     return updated;
   }
 
-  /** Al eliminar una categoría, retira también su chip de filtro activo. */
+  /** Al eliminar una categoría, retira sus filtros activos en ambas pantallas. */
   async function handleDeleteCategory(id) {
     const deleted = await removeCategory(id);
 
     if (deleted) {
-      setActiveFilters((current) =>
-        current.filter((filter) => !(filter.type === 'category' && filter.value === id)),
-      );
+      mainFilters.removeCategoryFilter(id);
+      detailFilters.removeCategoryFilter(id);
     }
 
     return deleted;
@@ -255,7 +167,8 @@ export default function TasksPage() {
 
         <section className="card">
           <h2 className="card__title">Subtareas ({childTasks.length})</h2>
-          <TaskList
+          <FilteredTaskList
+            filters={detailFilters}
             tasks={childTasks}
             loading={loading}
             busy={saving}
@@ -264,6 +177,7 @@ export default function TasksPage() {
             onOpen={setSelectedTaskId}
             emptyTitle="Esta tarea no tiene subtareas."
             emptyHint="Añade una con el formulario de arriba."
+            countLabel="subtareas"
           />
         </section>
       </div>
@@ -308,49 +222,20 @@ export default function TasksPage() {
       </section>
 
       <section className="tasks-page__content">
-        <div className="toolbar">
-          <div className="field field--inline">
-            <label className="visually-hidden" htmlFor="search">
-              Buscar tareas
-            </label>
-            <input
-              id="search"
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por título o descripción…"
-            />
-          </div>
-
-          <FilterDropdown
-            groups={filterGroups}
-            activeKeys={activeKeys}
-            onSelect={addFilter}
-          />
-        </div>
-
-        <ActiveFilters
-          filters={activeFilters}
-          onRemove={removeFilter}
-          onClear={() => setActiveFilters([])}
-        />
-
         <Alert type="error" message={error} onRetry={refresh} onClose={clearError} />
 
-        <TaskList
-          tasks={visibleTasks}
+        <FilteredTaskList
+          filters={mainFilters}
+          tasks={rootTasks}
           loading={loading}
           busy={saving}
           onChange={updateTask}
           onDelete={handleDeleteTask}
           onOpen={setSelectedTaskId}
+          emptyTitle="No hay tareas que coincidan con el filtro."
+          emptyHint="Crea una nueva tarea con el formulario de la izquierda."
+          countLabel="tareas principales"
         />
-
-        {!loading && visibleTasks.length > 0 && (
-          <p className="muted tasks-page__count">
-            Mostrando {visibleTasks.length} de {rootTasks.length} tareas principales.
-          </p>
-        )}
       </section>
     </div>
   );

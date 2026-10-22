@@ -1,11 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react';
 
 /**
- * Desplegable con todos los filtros disponibles de la base de datos
- * (estado, prioridad y categorías). Al elegir una opción se convierte en un
- * filtro activo y desaparece de la lista; si se retira, vuelve a aparecer aquí.
+ * Desplegable con todos los filtros disponibles (estado, prioridad y
+ * categorías). Cada opción se puede activar y desactivar sin cerrar el panel,
+ * de modo que se pueden combinar varios filtros del mismo tipo a la vez.
  */
-export default function FilterDropdown({ groups, activeKeys, onSelect }) {
+export default function FilterDropdown({ groups, activeKeys, onToggle }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   const panelId = useId();
@@ -30,15 +30,6 @@ export default function FilterDropdown({ groups, activeKeys, onSelect }) {
     };
   }, [open]);
 
-  const availableGroups = groups
-    .map((group) => ({
-      ...group,
-      options: group.options.filter(
-        (option) => !activeKeys.has(`${group.type}:${option.value}`),
-      ),
-    }))
-    .filter((group) => group.options.length > 0);
-
   return (
     <div className="filter-dropdown" ref={containerRef}>
       <button
@@ -61,40 +52,50 @@ export default function FilterDropdown({ groups, activeKeys, onSelect }) {
           id={panelId}
           className="filter-dropdown__panel"
           role="group"
-          aria-label="Añadir filtros"
+          aria-label="Seleccionar filtros"
         >
-          {availableGroups.length === 0 ? (
-            <p className="muted filter-dropdown__empty">
-              Todos los filtros disponibles están activos.
-            </p>
+          {groups.length === 0 ? (
+            <p className="muted filter-dropdown__empty">No hay filtros disponibles.</p>
           ) : (
-            availableGroups.map((group) => (
+            groups.map((group) => (
               <div className="filter-dropdown__group" key={group.type}>
                 <p className="filter-dropdown__title">{group.label}</p>
                 <div className="filter-dropdown__options">
-                  {group.options.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className="filter-option"
-                      onClick={() => onSelect({
-                        type: group.type,
-                        groupLabel: group.label,
-                        value: option.value,
-                        label: option.label,
-                        color: option.color,
-                      })}
-                    >
-                      {option.color && (
-                        <span
-                          className="filter-option__dot"
-                          style={{ backgroundColor: option.color }}
-                          aria-hidden="true"
-                        />
-                      )}
-                      {option.label}
-                    </button>
-                  ))}
+                  {group.options.map((option) => {
+                    const active = activeKeys.has(`${group.type}:${option.value}`);
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`filter-option ${active ? 'filter-option--active' : ''}`}
+                        aria-pressed={active}
+                        onClick={() =>
+                          onToggle({
+                            type: group.type,
+                            groupLabel: group.label,
+                            value: option.value,
+                            label: option.label,
+                            color: option.color,
+                          })
+                        }
+                      >
+                        {option.color && (
+                          <span
+                            className="filter-option__dot"
+                            style={{ backgroundColor: option.color }}
+                            aria-hidden="true"
+                          />
+                        )}
+                        {option.label}
+                        {active && (
+                          <span className="filter-option__check" aria-hidden="true">
+                            ✓
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))
