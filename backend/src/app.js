@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import routes from './routes/index.js';
 import { notFound } from './middlewares/notFound.js';
@@ -20,14 +21,19 @@ app.disable('x-powered-by');
 app.use(helmet());
 
 // CORS restringido al frontend configurado (admite lista separada por comas).
+// `credentials` permite el envío de la cookie httpOnly del refresh token.
 app.use(
   cors({
     origin: env.corsOrigin.split(',').map((origin) => origin.trim()),
+    credentials: true,
   }),
 );
 
 // Parseo del body JSON con límite para evitar payloads gigantes.
 app.use(express.json({ limit: '1mb' }));
+
+// Lectura de cookies (refresh token).
+app.use(cookieParser());
 
 // Log de requests: 'dev' en local, 'combined' en producción.
 app.use(morgan(env.isProduction ? 'combined' : 'dev'));

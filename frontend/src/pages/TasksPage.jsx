@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react';
 import Alert from '../components/Alert.jsx';
 import TaskForm from '../components/TaskForm.jsx';
 import TaskList from '../components/TaskList.jsx';
-import { TASK_STATUSES } from '../constants/tasks.js';
+import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
 import { useTasks } from '../hooks/useTasks.js';
 
-/** Página principal: formulario, filtros y listado de tareas. */
+/** Página principal: formulario, filtros y listado de tareas del usuario. */
 export default function TasksPage() {
   const {
     tasks,
@@ -21,6 +21,7 @@ export default function TasksPage() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
 
   const counts = useMemo(() => {
     return tasks.reduce(
@@ -38,14 +39,16 @@ export default function TasksPage() {
 
     return tasks.filter((task) => {
       const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      const matchesPriority =
+        priorityFilter === 'all' || task.priority === priorityFilter;
       const matchesSearch =
         !term ||
         task.title.toLowerCase().includes(term) ||
         (task.description ?? '').toLowerCase().includes(term);
 
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesPriority && matchesSearch;
     });
-  }, [tasks, search, statusFilter]);
+  }, [tasks, search, statusFilter, priorityFilter]);
 
   return (
     <div className="tasks-page">
@@ -82,6 +85,24 @@ export default function TasksPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Buscar por título o descripción…"
             />
+          </div>
+
+          <div className="field field--compact">
+            <label className="visually-hidden" htmlFor="priority-filter">
+              Filtrar por prioridad
+            </label>
+            <select
+              id="priority-filter"
+              value={priorityFilter}
+              onChange={(event) => setPriorityFilter(event.target.value)}
+            >
+              <option value="all">Todas las prioridades</option>
+              {TASK_PRIORITIES.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  Prioridad {label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="filters" role="group" aria-label="Filtrar por estado">

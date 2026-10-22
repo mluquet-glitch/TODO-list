@@ -1,16 +1,24 @@
 import { ApiError } from '../utils/ApiError.js';
 
-/** Estados permitidos por la tabla `tasks` (deben coincidir con el CHECK de la migración). */
+/** Valores permitidos por los CHECK de la tabla `tasks`. */
 export const TASK_STATUSES = ['pending', 'in_progress', 'done'];
+export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const INT_RE = /^[1-9]\d*$/;
 
 function normalizeString(value) {
   if (value === null || value === undefined) return null;
   if (typeof value !== 'string') return undefined;
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed;
+}
+
+/** Convierte un id positivo (número o cadena numérica) o devuelve undefined. */
+function normalizeId(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const id = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isSafeInteger(id) || id <= 0) return undefined;
+  return id;
 }
 
 /** Cada parser devuelve el valor listo para SQL o `undefined` si es inválido. */
@@ -21,16 +29,16 @@ const parsers = {
       errors.push('title es obligatorio');
       return undefined;
     }
-    if (title.length > 120) {
-      errors.push('title no puede superar los 120 caracteres');
+    if (title.length > 255) {
+      errors.push('title no puede superar los 255 caracteres');
       return undefined;
     }
     return title;
   },
   description(value, errors) {
     const description = normalizeString(value);
-    if (description && description.length > 1000) {
-      errors.push('description no puede superar los 1000 caracteres');
+    if (description && description.length > 2000) {
+      errors.push('description no puede superar los 2000 caracteres');
       return undefined;
     }
     return description;
@@ -42,13 +50,21 @@ const parsers = {
     }
     return value;
   },
-  dueDate(value, errors) {
-    if (value === null || value === '') return null;
-    if (typeof value !== 'string' || !DATE_RE.test(value) || Number.isNaN(Date.parse(value))) {
-      errors.push('dueDate debe ser una fecha válida con formato YYYY-MM-DD');
+  priority(value, errors) {
+    if (!TASK_PRIORITIES.includes(value)) {
+      errors.push(`priority debe ser una de: ${TASK_PRIORITIES.join(', ')}`);
       return undefined;
     }
     return value;
+  },
+  parentTaskId(value, errors) {
+    if (value === null || value === '') return null;
+    const id = normalizeId(value);
+    if (id === undefined) {
+      errors.push('parentTaskId debe ser un id de tarea válido');
+      return undefined;
+    }
+    return id;
   },
 };
 
@@ -77,7 +93,9 @@ function parseBody(body, mode) {
   }
 
   if (mode === 'update' && keys.length === 0) {
-    errors.push('Envía al menos un campo editable: title, description, status o dueDate');
+    errors.push(
+      'Envía al menos un campo editable: title, description, status, priority o parentTaskId',
+    );
   }
 
   if (errors.length > 0) {
@@ -98,9 +116,9 @@ export function validateUpdateTask(body) {
 }
 
 /** Valida el `:id` de la ruta antes de tocar la base de datos. */
-export function validateTaskId(id) {
-  if (!UUID_RE.test(id)) {
-    throw ApiError.badRequest('El id debe ser un UUID válido');
+export function validateTaskId(value) {
+  if (typeof value !== 'string' || !INT_RE.test(value) || !Number.isSafeInteger(Number(value))) {
+    throw ApiError.badRequest('El id debe ser un entero positivo');
   }
-  return id;
+  return Number(value);
 }
