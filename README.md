@@ -75,9 +75,10 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
 - **Tareas y subtareas**: una tarea puede tener varias hijas mediante `tasks.parent_task_id`; cada
   hija tiene como máximo un padre y el borrado del padre elimina su descendencia en cascada. La
   base de datos impide que una tarea sea su propio padre.
-- El título de cada tarea es un botón que abre su **detalle**: un índice superior muestra el padre y
-  sus hijas (con la tarea actual en rojo), se editan sus datos y categorías, se crean subtareas
-  enlazadas y se listan sus hijas directas. La pantalla principal solo muestra las tareas sin padre.
+- El título de cada tarea es un botón que abre su **detalle**: un índice fijo y desplegable en el
+  lateral derecho muestra el padre y sus hijas (con la tarea actual en rojo) y sigue visible al hacer
+  scroll; se editan sus datos y categorías, se crean subtareas enlazadas y se listan sus hijas
+  directas. La pantalla principal solo muestra las tareas sin padre.
 - Cada tarjeta muestra una línea de la descripción y un **toggle de subtareas** que las despliega en
   tonos apagados, con título y parte de la descripción, y permite abrirlas con un clic.
 
