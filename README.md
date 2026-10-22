@@ -69,9 +69,12 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
   subtareas del detalle.
 - La API acepta `status`, `priority` y `categoryIds` multi-valor, además de `search`; cada tarea
   incluye `dueDate` en las respuestas.
-- El panel **Gestionar categorías** muestra un toggle con todo el catálogo: selecciona una para
-  **Actualizar** o **Eliminar**, escribe un nombre y pulsa **Agregar categoría** para crear una
-  nueva. Eliminar pide confirmación y quita la categoría de las tareas que la usen.
+- El panel **Gestionar categorías** es un acordeón cerrado por defecto y en gris claro. Al abrirlo
+  muestra un toggle con todo el catálogo: selecciona una para **Actualizar** o **Eliminar**, escribe
+  un nombre y pulsa **Agregar categoría** para crear una nueva. Eliminar pide confirmación y quita
+  la categoría de las tareas que la usen.
+- El panel **Resumen** también empieza plegado; al abrirlo muestra el total de tareas y el conteo
+  por estado.
 - **Tareas y subtareas**: una tarea puede tener varias hijas mediante `tasks.parent_task_id`; cada
   hija tiene como máximo un padre y el borrado del padre elimina su descendencia en cascada. La
   base de datos impide que una tarea sea su propio padre.

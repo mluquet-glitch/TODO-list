@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import Alert from './Alert.jsx';
 
 /**
@@ -18,6 +18,8 @@ export default function CategoryManager({
   const [selectedId, setSelectedId] = useState(null);
   const [name, setName] = useState('');
   const [localError, setLocalError] = useState('');
+  const [open, setOpen] = useState(false);
+  const bodyId = useId();
 
   const selected = categories.find((category) => category.id === selectedId) ?? null;
 
@@ -104,95 +106,118 @@ export default function CategoryManager({
   }
 
   return (
-    <section className="card category-manager">
-      <h2 className="card__title">Gestionar categorías</h2>
-
-      <div className="field">
-        <span className="field__label">Categoría</span>
-
-        {categories.length === 0 ? (
-          <p className="muted">Todavía no hay categorías. Crea la primera con el formulario.</p>
-        ) : (
-          <div
-            className="category-toggle"
-            role="group"
-            aria-label="Seleccionar categoría para actualizar o eliminar"
+    <section
+      className={`card category-manager${
+        open ? '' : ' collapsible-card--closed'
+      }`}
+    >
+      <div className="collapsible-card__header">
+        <h2 className="card__title collapsible-card__title">
+          <button
+            type="button"
+            className="collapsible-card__toggle"
+            aria-expanded={open}
+            aria-controls={bodyId}
+            onClick={() => setOpen((current) => !current)}
           >
-            {categories.map((category) => {
-              const active = category.id === selectedId;
-
-              return (
-                <button
-                  key={category.id}
-                  type="button"
-                  className={`category-toggle__option ${active ? 'category-toggle__option--active' : ''}`}
-                  aria-pressed={active}
-                  onClick={() => selectCategory(category)}
-                >
-                  <span
-                    className="category-toggle__dot"
-                    style={{ backgroundColor: category.color }}
-                    aria-hidden="true"
-                  />
-                  {category.name}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        <p className="muted category-manager__hint">
-          Elige una categoría para actualizarla o eliminarla.
-        </p>
+            <span className="collapsible-card__chevron" aria-hidden="true">
+              {open ? '▾' : '▸'}
+            </span>
+            Gestionar categorías
+          </button>
+        </h2>
       </div>
 
-      <form className="category-manager__form" onSubmit={handleAdd} noValidate>
-        <div className="field">
-          <label htmlFor="category-name">Nombre</label>
-          <div className="category-manager__row">
-            <input
-              id="category-name"
-              type="text"
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value);
-                if (localError) setLocalError('');
-              }}
-              maxLength={80}
-              placeholder="Ej. Hogar"
-              autoComplete="off"
-            />
-            <button
-              type="submit"
-              className="button button--primary"
-              disabled={saving || name.trim() === ''}
-            >
-              {saving ? 'Guardando…' : 'Agregar categoría'}
-            </button>
+      {open && (
+        <div id={bodyId} className="category-manager__body">
+          <div className="field">
+            <span className="field__label">Categoría</span>
+
+            {categories.length === 0 ? (
+              <p className="muted">Todavía no hay categorías. Crea la primera con el formulario.</p>
+            ) : (
+              <div
+                className="category-toggle"
+                role="group"
+                aria-label="Seleccionar categoría para actualizar o eliminar"
+              >
+                {categories.map((category) => {
+                  const active = category.id === selectedId;
+
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      className={`category-toggle__option ${active ? 'category-toggle__option--active' : ''}`}
+                      aria-pressed={active}
+                      onClick={() => selectCategory(category)}
+                    >
+                      <span
+                        className="category-toggle__dot"
+                        style={{ backgroundColor: category.color }}
+                        aria-hidden="true"
+                      />
+                      {category.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <p className="muted category-manager__hint">
+              Elige una categoría para actualizarla o eliminarla.
+            </p>
           </div>
-        </div>
 
-        <div className="category-manager__actions">
-          <button
-            type="button"
-            className="button"
-            onClick={handleDelete}
-            disabled={saving || !selected}
-          >
-            Eliminar
-          </button>
-          <button
-            type="button"
-            className="button"
-            onClick={handleUpdate}
-            disabled={saving || !selected || name.trim() === ''}
-          >
-            Actualizar
-          </button>
-        </div>
+          <form className="category-manager__form" onSubmit={handleAdd} noValidate>
+            <div className="field">
+              <label htmlFor="category-name">Nombre</label>
+              <div className="category-manager__row">
+                <input
+                  id="category-name"
+                  type="text"
+                  value={name}
+                  onChange={(event) => {
+                    setName(event.target.value);
+                    if (localError) setLocalError('');
+                  }}
+                  maxLength={80}
+                  placeholder="Ej. Hogar"
+                  autoComplete="off"
+                />
+                <button
+                  type="submit"
+                  className="button button--primary"
+                  disabled={saving || name.trim() === ''}
+                >
+                  {saving ? 'Guardando…' : 'Agregar categoría'}
+                </button>
+              </div>
+            </div>
 
-        <Alert type="error" message={localError || error} onClose={clearMessages} />
-      </form>
+            <div className="category-manager__actions">
+              <button
+                type="button"
+                className="button"
+                onClick={handleDelete}
+                disabled={saving || !selected}
+              >
+                Eliminar
+              </button>
+              <button
+                type="button"
+                className="button"
+                onClick={handleUpdate}
+                disabled={saving || !selected || name.trim() === ''}
+              >
+                Actualizar
+              </button>
+            </div>
+
+            <Alert type="error" message={localError || error} onClose={clearMessages} />
+          </form>
+        </div>
+      )}
     </section>
   );
 }

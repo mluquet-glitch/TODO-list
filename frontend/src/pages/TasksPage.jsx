@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import Alert from '../components/Alert.jsx';
 import CategoryManager from '../components/CategoryManager.jsx';
 import FilteredTaskList from '../components/FilteredTaskList.jsx';
@@ -37,6 +37,8 @@ export default function TasksPage() {
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [subtasksOpen, setSubtasksOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const summaryId = useId();
   const mainFilters = useTaskFilters(categories);
   const detailFilters = useTaskFilters(categories);
 
@@ -236,20 +238,44 @@ export default function TasksPage() {
           onClearError={clearCategoriesError}
         />
 
-        <div className="card stats">
-          <h2 className="card__title">Resumen</h2>
-          <ul className="stats__list">
-            <li>
-              <span>Total</span>
-              <strong>{counts.all}</strong>
-            </li>
-            {TASK_STATUSES.map(({ value, label }) => (
-              <li key={value}>
-                <span>{label}</span>
-                <strong>{counts[value] ?? 0}</strong>
-              </li>
-            ))}
-          </ul>
+        <div
+          className={`card stats${
+            summaryOpen ? '' : ' collapsible-card--closed'
+          }`}
+        >
+          <div className="collapsible-card__header">
+            <h2 className="card__title collapsible-card__title">
+              <button
+                type="button"
+                className="collapsible-card__toggle"
+                aria-expanded={summaryOpen}
+                aria-controls={summaryId}
+                onClick={() => setSummaryOpen((current) => !current)}
+              >
+                <span className="collapsible-card__chevron" aria-hidden="true">
+                  {summaryOpen ? '▾' : '▸'}
+                </span>
+                Resumen
+              </button>
+            </h2>
+          </div>
+
+          {summaryOpen && (
+            <div id={summaryId} className="collapsible-card__body">
+              <ul className="stats__list">
+                <li>
+                  <span>Total</span>
+                  <strong>{counts.all}</strong>
+                </li>
+                {TASK_STATUSES.map(({ value, label }) => (
+                  <li key={value}>
+                    <span>{label}</span>
+                    <strong>{counts[value] ?? 0}</strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </section>
 

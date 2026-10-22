@@ -62,8 +62,11 @@ Características principales:
   categorías y fecha límite). Se pueden activar varios a la vez, incluso varias categorías o presets
   de fecha; las opciones activas se marcan con ✓ y también aparecen como chips. Disponible en la
   pantalla principal y en el listado de subtareas del detalle.
-- **Gestión de categorías**: panel con un toggle de todas las categorías y un formulario para
-  agregar, actualizar y eliminar; Eliminar/Actualizar usan el toggle e Agregar usa el input.
+- **Gestión de categorías**: acordeón cerrado por defecto y en gris claro, con un toggle de todas las
+  categorías y un formulario para agregar, actualizar y eliminar; Eliminar/Actualizar usan el toggle
+  e Agregar usa el input.
+- **Resumen**: acordeón cerrado por defecto y en gris claro que, al abrirse, muestra el total de
+  tareas y el conteo por estado.
 - **Detalle y subtareas**: el título de cada tarea es un botón que abre su detalle; allí se editan
   sus datos y categorías, se crean subtareas enlazadas y se listan sus hijas. Las secciones de
   edición, alta y listado son acordeones: solo «Nueva subtarea» aparece abierta al entrar. La
@@ -726,7 +729,7 @@ frontend/
 | `src/hooks/useCategories.js` | Carga el catálogo y expone `categories`, `loading`, `saving`, `error` y las acciones CRUD; mantiene la lista ordenada. |
 | `src/hooks/useTaskFilters.js` | Encapsula búsqueda, filtros activos, grupos de opciones y el filtrado OR/AND. Permite varios estados, prioridades, categorías y presets de fecha límite a la vez. |
 | `src/utils/dates.js` | Trabaja con `YYYY-MM-DD` sin desfases de zona horaria: parseo local, suma de días, formato español y detección de tareas vencidas. |
-| `src/components/CategoryManager.jsx` | Toggle de todas las categorías + input y botones Agregar/Eliminar/Actualizar. Seleccionar un toggle rellena el input; Eliminar y Actualizar usan la categoría seleccionada e Agregar usa el texto. |
+| `src/components/CategoryManager.jsx` | Acordeón cerrado por defecto con toggle de todas las categorías + input y botones Agregar/Eliminar/Actualizar. Seleccionar un toggle rellena el input; Eliminar y Actualizar usan la categoría seleccionada e Agregar usa el texto. |
 | `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría, fecha límite). Cada opción se activa/desactiva con `aria-pressed` y ✓; el panel permanece abierto para combinar varias. |
 | `src/components/FilteredTaskList.jsx` | Barra de búsqueda, desplegable, chips, listado y contador; se usa tanto en la pantalla principal como en las subtareas del detalle. |
 | `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y su opción deja de estar marcada en el desplegable. |
@@ -788,8 +791,9 @@ frontend/
 
 ### Gestión de categorías
 
-- La tarjeta **Gestionar categorías** muestra un toggle con todo el catálogo. La selección es única:
-  al pulsar una categoría se marca y su nombre se copia al input; al volver a pulsarla se deselecciona.
+- La tarjeta **Gestionar categorías** empieza plegada y en gris claro. Al abrirla muestra un toggle
+  con todo el catálogo. La selección es única: al pulsar una categoría se marca y su nombre se copia
+  al input; al volver a pulsarla se deselecciona.
 - **Agregar categoría** usa exclusivamente el texto del input.
 - **Actualizar** usa la categoría seleccionada en el toggle y el texto del input como nuevo nombre.
 - **Eliminar** usa la categoría seleccionada, pide confirmación y elimina también sus asignaciones.
@@ -1031,6 +1035,8 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | Acordeones «Nueva tarea» y «Editar tarea» | cerrados por defecto; abren sus campos y recuperan el fondo blanco |
 | Acordeón «Nueva subtarea» | abierto por defecto al entrar en el detalle |
 | Acordeón «Subtareas» | cerrado por defecto, fondo gris claro y apertura bajo demanda |
+| Acordeón «Gestionar categorías» | cerrado por defecto; al abrirlo muestra el toggle y el formulario CRUD |
+| Acordeón «Resumen» | cerrado por defecto; al abrirlo muestra el total y el conteo por estado |
 | Índice en móvil (390 px) | panel dentro del viewport; disparador en la esquina inferior derecha |
 | Tarea completada con fecha pasada | no se marca como vencida |
 | Filtros `Vencidas`, `Para hoy`, `Próximos 7 días` y `Sin fecha` | resultados correctos |

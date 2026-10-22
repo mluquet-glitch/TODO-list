@@ -1401,6 +1401,13 @@ label.checkbox-chip--active {
   flex: none;
 }
 
+.category-manager__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
 .category-manager__hint {
   font-size: 0.72rem;
 }
