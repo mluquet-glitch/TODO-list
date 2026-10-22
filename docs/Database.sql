@@ -2,29 +2,16 @@
 -- Esquema completo de la base de datos (PostgreSQL 13+).
 -- Equivalente a las migraciones de backend/db/migrations.
 --
--- ADVERTENCIA: script de inicialización destructivo.
--- Elimina las tablas existentes (y sus datos) antes de volver a crearlas.
--- No lo ejecutes sobre una base con información que quieras conservar.
---
 -- Uso:
---   psql -U postgres -d tareas -v ON_ERROR_STOP=1 -f docs/Database.sql
+--   psql -U postgres -d tareas -f docs/Database.sql
 -- =============================================================================
-
-BEGIN;
-
--- -----------------------------------------------------------------------------
--- Limpieza previa
--- Se eliminan en orden inverso a las dependencias (hijos → padres).
--- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS refresh_tokens CASCADE;
 DROP TABLE IF EXISTS task_categories CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
-DROP FUNCTION IF EXISTS set_updated_at() CASCADE;
-
 -- -----------------------------------------------------------------------------
--- 1. Usuarios
+-- Usuarios
 -- -----------------------------------------------------------------------------
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
@@ -39,8 +26,12 @@ CREATE TABLE users (
     CONSTRAINT uq_users_email UNIQUE (email)
 );
 
+CREATE INDEX idx_users_role ON users (role);
+
 -- -----------------------------------------------------------------------------
--- 2. Categorías
+-- Categorías
+-- Catálogo global compartido: una tarea puede tener varias categorías y una
+-- categoría puede estar en varias tareas (relación N:M más abajo).
 -- -----------------------------------------------------------------------------
 CREATE TABLE categories (
     id BIGSERIAL PRIMARY KEY,
@@ -53,8 +44,24 @@ CREATE TABLE categories (
     CONSTRAINT uq_categories_slug UNIQUE (slug)
 );
 
+-- Función reutilizada por los triggers de updated_at.
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER users_set_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
 -- -----------------------------------------------------------------------------
--- 3. Tareas
+-- Tareas
 -- -----------------------------------------------------------------------------
 CREATE TABLE tasks (
     id BIGSERIAL PRIMARY KEY,
@@ -87,8 +94,17 @@ CREATE TABLE tasks (
         CHECK (priority IN ('low', 'medium', 'high', 'urgent'))
 );
 
+CREATE TRIGGER tasks_set_updated_at
+BEFORE UPDATE ON tasks
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
+CREATE INDEX idx_tasks_user_created_at ON tasks (user_id, created_at DESC);
+CREATE INDEX idx_tasks_user_status ON tasks (user_id, status);
+CREATE INDEX idx_tasks_parent_task ON tasks (parent_task_id);
+
 -- -----------------------------------------------------------------------------
--- 4. Relación N:M tareas ↔ categorías
+-- Relación N:M tareas ↔ categorías
 -- -----------------------------------------------------------------------------
 CREATE TABLE task_categories (
     task_id BIGINT NOT NULL,
@@ -108,8 +124,11 @@ CREATE TABLE task_categories (
         ON DELETE CASCADE
 );
 
+-- La PK cubre las búsquedas por task_id; este índice cubre las de category_id.
+CREATE INDEX idx_task_categories_category ON task_categories (category_id);
+
 -- -----------------------------------------------------------------------------
--- 5. Refresh tokens (sesiones renovables)
+-- Refresh tokens (sesiones renovables)
 -- Se almacena únicamente el hash SHA-256 del token; el valor original vive en
 -- una cookie httpOnly del navegador.
 -- -----------------------------------------------------------------------------
@@ -130,47 +149,5 @@ CREATE TABLE refresh_tokens (
     CONSTRAINT uq_refresh_tokens_hash UNIQUE (token_hash)
 );
 
--- -----------------------------------------------------------------------------
--- 6. Función y triggers de updated_at
--- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER users_set_updated_at
-BEFORE UPDATE ON users
-FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
-
-CREATE TRIGGER tasks_set_updated_at
-BEFORE UPDATE ON tasks
-FOR EACH ROW
-EXECUTE FUNCTION set_updated_at();
-
--- -----------------------------------------------------------------------------
--- 7. Índices
--- -----------------------------------------------------------------------------
-
--- Usuarios
-CREATE INDEX idx_users_role ON users (role);
-
--- Tareas: listado por usuario, filtros por estado y jerarquía.
-CREATE INDEX idx_tasks_user_created_at ON tasks (user_id, created_at DESC);
-CREATE INDEX idx_tasks_user_status ON tasks (user_id, status);
-CREATE INDEX idx_tasks_parent_task ON tasks (parent_task_id);
-
--- Categorías: la PK de task_categories cubre task_id; este índice cubre
--- las búsquedas y filtros por categoría.
-CREATE INDEX idx_task_categories_category ON task_categories (category_id);
-
--- Refresh tokens: búsqueda por usuario y limpieza de expirados.
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens (user_id);
 CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens (expires_at);
-
-COMMIT;
