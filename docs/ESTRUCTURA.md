@@ -308,6 +308,11 @@ Sin `devDependencies`: la recarga usa `node --watch` nativo.
 El esquema completo y ejecutable está en [`docs/Database.sql`](Database.sql), alineado con las
 migraciones.
 
+> `Database.sql` es un script de **inicialización destructivo**: ejecuta
+> `DROP TABLE ... CASCADE` sobre `refresh_tokens`, `tasks` y `users` antes de crearlas, junto con
+> todos sus índices y triggers. Úsalo para recrear la base desde cero; para bases existentes usa
+> `npm run db:migrate`.
+
 ### `users`
 
 | Columna | Tipo | Restricciones |
