@@ -65,8 +65,9 @@ Características principales:
 - **Gestión de categorías**: panel con un toggle de todas las categorías y un formulario para
   agregar, actualizar y eliminar; Eliminar/Actualizar usan el toggle e Agregar usa el input.
 - **Detalle y subtareas**: el título de cada tarea es un botón que abre su detalle; allí se editan
-  sus datos y categorías, se crean subtareas enlazadas y se listan sus hijas. La pantalla principal
-  solo muestra las tareas sin padre.
+  sus datos y categorías, se crean subtareas enlazadas y se listan sus hijas. Las secciones de
+  edición, alta y listado son acordeones: solo «Nueva subtarea» aparece abierta al entrar. La
+  pantalla principal solo muestra las tareas sin padre.
 - **Fechas límite**: cada tarea puede tener una fecha opcional que se muestra en la tarjeta y se
   resalta en rojo cuando está vencida; los filtros permiten ver vencidas, para hoy, próximas o sin
   fecha.
@@ -729,8 +730,8 @@ frontend/
 | `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría, fecha límite). Cada opción se activa/desactiva con `aria-pressed` y ✓; el panel permanece abierto para combinar varias. |
 | `src/components/FilteredTaskList.jsx` | Barra de búsqueda, desplegable, chips, listado y contador; se usa tanto en la pantalla principal como en las subtareas del detalle. |
 | `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y su opción deja de estar marcada en el desplegable. |
-| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, fecha límite, estado, prioridad y categorías. Acepta `parentTaskId`, `initialCategoryIds`, `heading` y `submitLabel`; al crear subtareas precarga las categorías del padre. |
-| `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, fecha límite, estado, prioridad, categorías, guardado y borrado. |
+| `src/components/TaskForm.jsx` | Formulario plegable con título, descripción, fecha límite, estado, prioridad y categorías. Acepta `parentTaskId`, `initialCategoryIds`, `heading`, `submitLabel` y `defaultOpen`; al crear subtareas precarga las categorías del padre. |
+| `src/components/TaskDetail.jsx` | Tarjeta plegable de edición de la tarea abierta: título, descripción, fecha límite, estado, prioridad, categorías, guardado y borrado; empieza cerrada. |
 | `src/components/TaskHierarchyIndex.jsx` | Índice lateral fijo con la tarea padre (la propia si es raíz) y todas sus hijas directas; incluye un botón para volver a la pantalla principal, la tarea abierta se marca en rojo, cada entrada permite navegar y el panel se abre/cierra sin perder la posición al hacer scroll. |
 | `src/components/TaskItem.jsx` | Título-botón, vista previa de descripción en una línea, fecha límite (en rojo si está vencida), badges, toggle de subtareas clicables con selector de estado persistente y acciones de estado/borrado. |
 | `src/components/TaskList.jsx` | Agrupa las hijas por `parentTaskId` y renderiza la lista o los estados de carga/vacío; reenvía la apertura del detalle. |
@@ -766,16 +767,19 @@ frontend/
   resalta en rojo. El panel incluye el botón **← Volver a la pantalla principal**, se cierra con su
   botón ×, con `Escape` o haciendo clic fuera; en móvil ocupa el ancho disponible y el disparador
   pasa a la esquina inferior derecha.
-- Después aparece la tarjeta **Editar tarea** (datos y categorías), fuera de cualquier listado.
-  Debajo aparece el mismo `TaskForm` de alta, configurado con `parentTaskId`, `heading`,
-  `submitLabel` e `initialCategoryIds`; el formulario abre con las categorías de la tarea padre ya
-  marcadas y las conserva al limpiarse después de crear cada subtarea.
+- Después aparece la tarjeta **Editar tarea** (datos y categorías), fuera de cualquier listado y
+  plegada por defecto. Al abrirla muestra sus campos; al cerrarla, la tarjeta queda en gris claro.
+- Debajo aparece el mismo `TaskForm` de alta, configurado con `parentTaskId`, `heading`,
+  `submitLabel`, `initialCategoryIds` y `defaultOpen`. Es la única sección que abre desplegada al
+  entrar en el detalle: muestra las categorías de la tarea padre ya marcadas y las conserva al
+  limpiarse después de crear cada subtarea.
 - La nueva subtarea queda enlazada al padre y también recibe esas categorías en la API, porque el
   formulario envía la selección precargada salvo que el usuario la modifique.
-- Más abajo se listan solo las hijas directas de la tarea abierta, con su propia barra de búsqueda
-  y los mismos filtros multi-selección; sus títulos también abren su propio detalle. El botón de
-  volver regresa al padre si existe o al listado principal. Los filtros del detalle se reinician al
-  cambiar de tarea.
+- Más abajo aparece **Subtareas (N)** como acordeón cerrado por defecto, con fondo gris claro. Al
+  abrirlo se listan solo las hijas directas de la tarea abierta, con su propia barra de búsqueda y
+  los mismos filtros multi-selección; sus títulos también abren su propio detalle. El botón de
+  volver regresa al padre si existe o al listado principal. Los filtros del detalle y el estado del
+  acordeón se reinician al cambiar de tarea.
 - La pantalla principal calcula `rootTasks = tasks.filter(parentTaskId === null)`; los contadores,
   filtros y búsqueda trabajan sobre esas tareas raíz. Las hijas se ven en el detalle de su padre.
 - Al guardar, `useTasks` actualiza la tarea en memoria y el detalle refleja los cambios sin recargar.
@@ -846,7 +850,8 @@ React Router sería el siguiente paso.
 
 ### Crear una tarea o subtarea
 
-1. `TaskForm` → `useTasks.createTask` → `tasksApi.create`.
+1. En la pantalla principal, la tarjeta **Nueva tarea** empieza plegada y en gris claro; al abrirla,
+   `TaskForm` → `useTasks.createTask` → `tasksApi.create`.
 2. `POST /api/tasks` con Bearer, `dueDate`, `categoryIds` y, si es una subtarea, `parentTaskId`.
 3. `requireAuth` → controlador → validador (incluida la fecha real) → servicio (valida que el padre
    sea del usuario y que las categorías existan) → repositorio.
@@ -1023,6 +1028,9 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | Botón «Volver a la pantalla principal» del índice | cierra el detalle y restaura el listado principal |
 | Formulario de subtarea con padre categorizado | abre con las categorías del padre marcadas y las conserva tras crear |
 | Selector de estado en la lista desplegada de subtareas | actualiza la interfaz y persiste el nuevo estado vía `PATCH /api/tasks/:id` |
+| Acordeones «Nueva tarea» y «Editar tarea» | cerrados por defecto; abren sus campos y recuperan el fondo blanco |
+| Acordeón «Nueva subtarea» | abierto por defecto al entrar en el detalle |
+| Acordeón «Subtareas» | cerrado por defecto, fondo gris claro y apertura bajo demanda |
 | Índice en móvil (390 px) | panel dentro del viewport; disparador en la esquina inferior derecha |
 | Tarea completada con fecha pasada | no se marca como vencida |
 | Filtros `Vencidas`, `Para hoy`, `Próximos 7 días` y `Sin fecha` | resultados correctos |

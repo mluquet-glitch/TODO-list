@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
 
 function toForm(task) {
@@ -23,10 +23,13 @@ export default function TaskDetail({
   saving,
   onUpdate,
   onDelete,
+  defaultOpen = false,
 }) {
   const [form, setForm] = useState(() => toForm(task));
   const [localError, setLocalError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
 
   // Al navegar a otra tarea reiniciamos el formulario.
   useEffect(() => {
@@ -100,10 +103,29 @@ export default function TaskDetail({
   }
 
   return (
-    <form className="card task-detail" onSubmit={handleSubmit} noValidate>
+    <form
+      className={`card task-detail${
+        open ? '' : ' collapsible-card--closed'
+      }`}
+      onSubmit={handleSubmit}
+      noValidate
+    >
       <div className="task-detail__header">
         <div>
-          <h2 className="card__title">Editar tarea</h2>
+          <h2 className="card__title collapsible-card__title">
+            <button
+              type="button"
+              className="collapsible-card__toggle"
+              aria-expanded={open}
+              aria-controls={bodyId}
+              onClick={() => setOpen((current) => !current)}
+            >
+              <span className="collapsible-card__chevron" aria-hidden="true">
+                {open ? '▾' : '▸'}
+              </span>
+              Editar tarea
+            </button>
+          </h2>
           <p className="muted task-detail__meta">
             Tarea #{task.id}
             {task.parentTaskId
@@ -122,121 +144,125 @@ export default function TaskDetail({
         </button>
       </div>
 
-      <div className="field">
-        <label htmlFor="detail-title">Título</label>
-        <input
-          id="detail-title"
-          name="title"
-          type="text"
-          value={form.title}
-          onChange={handleChange}
-          maxLength={255}
-          autoComplete="off"
-          aria-invalid={Boolean(localError)}
-        />
-        {localError && <span className="field__error">{localError}</span>}
-      </div>
-
-      <div className="field">
-        <label htmlFor="detail-description">Descripción</label>
-        <textarea
-          id="detail-description"
-          name="description"
-          rows={3}
-          value={form.description}
-          onChange={handleChange}
-          maxLength={2000}
-          placeholder="Detalles opcionales"
-        />
-      </div>
-
-      <div className="field">
-        <label htmlFor="detail-due-date">Fecha límite (opcional)</label>
-        <input
-          id="detail-due-date"
-          name="dueDate"
-          type="date"
-          value={form.dueDate}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="form-row">
-        <div className="field">
-          <label htmlFor="detail-status">Estado</label>
-          <select
-            id="detail-status"
-            name="status"
-            value={form.status}
-            onChange={handleChange}
-          >
-            {TASK_STATUSES.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="field">
-          <label htmlFor="detail-priority">Prioridad</label>
-          <select
-            id="detail-priority"
-            name="priority"
-            value={form.priority}
-            onChange={handleChange}
-          >
-            {TASK_PRIORITIES.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="field">
-        <span className="field__label">Categorías</span>
-        {categories.length === 0 ? (
-          <p className="muted">No hay categorías disponibles.</p>
-        ) : (
-          <div className="checkbox-group">
-            {categories.map((category) => {
-              const checked = form.categoryIds.includes(category.id);
-
-              return (
-                <label
-                  key={category.id}
-                  className={`checkbox-chip ${checked ? 'checkbox-chip--active' : ''}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleCategory(category.id)}
-                  />
-                  <span
-                    className="checkbox-chip__dot"
-                    style={{ backgroundColor: category.color }}
-                    aria-hidden="true"
-                  />
-                  {category.name}
-                </label>
-              );
-            })}
+      {open && (
+        <div id={bodyId} className="task-detail__body">
+          <div className="field">
+            <label htmlFor="detail-title">Título</label>
+            <input
+              id="detail-title"
+              name="title"
+              type="text"
+              value={form.title}
+              onChange={handleChange}
+              maxLength={255}
+              autoComplete="off"
+              aria-invalid={Boolean(localError)}
+            />
+            {localError && <span className="field__error">{localError}</span>}
           </div>
-        )}
-      </div>
 
-      <div className="task-detail__footer">
-        <button type="submit" className="button button--primary" disabled={saving}>
-          {saving ? 'Guardando…' : 'Guardar cambios'}
-        </button>
-        {saved && (
-          <span className="task-detail__saved" role="status">
-            Cambios guardados.
-          </span>
-        )}
-      </div>
+          <div className="field">
+            <label htmlFor="detail-description">Descripción</label>
+            <textarea
+              id="detail-description"
+              name="description"
+              rows={3}
+              value={form.description}
+              onChange={handleChange}
+              maxLength={2000}
+              placeholder="Detalles opcionales"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="detail-due-date">Fecha límite (opcional)</label>
+            <input
+              id="detail-due-date"
+              name="dueDate"
+              type="date"
+              value={form.dueDate}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="field">
+              <label htmlFor="detail-status">Estado</label>
+              <select
+                id="detail-status"
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+              >
+                {TASK_STATUSES.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="field">
+              <label htmlFor="detail-priority">Prioridad</label>
+              <select
+                id="detail-priority"
+                name="priority"
+                value={form.priority}
+                onChange={handleChange}
+              >
+                {TASK_PRIORITIES.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="field">
+            <span className="field__label">Categorías</span>
+            {categories.length === 0 ? (
+              <p className="muted">No hay categorías disponibles.</p>
+            ) : (
+              <div className="checkbox-group">
+                {categories.map((category) => {
+                  const checked = form.categoryIds.includes(category.id);
+
+                  return (
+                    <label
+                      key={category.id}
+                      className={`checkbox-chip ${checked ? 'checkbox-chip--active' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleCategory(category.id)}
+                      />
+                      <span
+                        className="checkbox-chip__dot"
+                        style={{ backgroundColor: category.color }}
+                        aria-hidden="true"
+                      />
+                      {category.name}
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="task-detail__footer">
+            <button type="submit" className="button button--primary" disabled={saving}>
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+            {saved && (
+              <span className="task-detail__saved" role="status">
+                Cambios guardados.
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </form>
   );
 }

@@ -164,6 +164,64 @@ textarea {
   gap: 0.9rem;
 }
 
+.collapsible-card--closed {
+  background: #edf0f5;
+  box-shadow: none;
+}
+
+.collapsible-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.collapsible-card__title {
+  margin-bottom: 0;
+}
+
+.collapsible-card__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collapsible-card__toggle:hover {
+  color: var(--primary);
+}
+
+.collapsible-card__toggle:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.collapsible-card__chevron {
+  width: 0.75rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.collapsible-card__body {
+  margin-top: 1rem;
+}
+
+.task-form__body,
+.task-detail__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
 .field {
   display: flex;
   flex-direction: column;

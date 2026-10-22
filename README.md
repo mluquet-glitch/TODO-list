@@ -77,9 +77,10 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
   base de datos impide que una tarea sea su propio padre.
 - El título de cada tarea es un botón que abre su **detalle**: un índice fijo y desplegable en el
   lateral derecho muestra el padre y sus hijas (con la tarea actual en rojo), sigue visible al hacer
-  scroll e incluye un botón para volver a la pantalla principal; se editan sus datos y categorías,
-  se crean subtareas enlazadas —con las categorías del padre preseleccionadas— y se listan sus hijas
-  directas. La pantalla principal solo muestra las tareas sin padre.
+  scroll e incluye un botón para volver a la pantalla principal. **Editar tarea** y **Subtareas**
+  son acordeones cerrados por defecto y en gris claro; **Nueva subtarea** abre desplegada, con las
+  categorías del padre preseleccionadas. La tarjeta **Nueva tarea** de la pantalla principal también
+  empieza cerrada. La pantalla principal solo muestra las tareas sin padre.
 - Cada tarjeta muestra una línea de la descripción y un **toggle de subtareas** que las despliega en
   tonos apagados, con título y parte de la descripción, y permite abrirlas con un clic. Cada
   subtarea incluye un selector para cambiar su estado sin abrir el detalle; el cambio se guarda

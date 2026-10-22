@@ -36,6 +36,7 @@ export default function TasksPage() {
   } = useCategories();
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [subtasksOpen, setSubtasksOpen] = useState(false);
   const mainFilters = useTaskFilters(categories);
   const detailFilters = useTaskFilters(categories);
 
@@ -58,9 +59,10 @@ export default function TasksPage() {
     [tasks],
   );
 
-  // Si cambiamos de tarea, el detalle empieza sin filtros.
+  // Si cambiamos de tarea, el detalle empieza sin filtros y con las subtareas plegadas.
   useEffect(() => {
     detailFilters.reset();
+    setSubtasksOpen(false);
   }, [selectedTaskId, detailFilters.reset]);
 
   // Si la tarea abierta se elimina, volvemos a la pantalla principal.
@@ -167,23 +169,48 @@ export default function TasksPage() {
           )}
           heading={`Nueva subtarea de «${selectedTask.title}»`}
           submitLabel="Añadir subtarea"
+          defaultOpen
         />
 
-        <section className="card">
-          <h2 className="card__title">Subtareas ({childTasks.length})</h2>
-          <FilteredTaskList
-            filters={detailFilters}
-            tasks={childTasks}
-            allTasks={tasks}
-            loading={loading}
-            busy={saving}
-            onChange={updateTask}
-            onDelete={handleDeleteTask}
-            onOpen={setSelectedTaskId}
-            emptyTitle="Esta tarea no tiene subtareas."
-            emptyHint="Añade una con el formulario de arriba."
-            countLabel="subtareas"
-          />
+        <section
+          className={`card${
+            subtasksOpen ? '' : ' collapsible-card--closed'
+          }`}
+        >
+          <div className="collapsible-card__header">
+            <h2 className="card__title collapsible-card__title">
+              <button
+                type="button"
+                className="collapsible-card__toggle"
+                aria-expanded={subtasksOpen}
+                aria-controls="detail-subtasks"
+                onClick={() => setSubtasksOpen((current) => !current)}
+              >
+                <span className="collapsible-card__chevron" aria-hidden="true">
+                  {subtasksOpen ? '▾' : '▸'}
+                </span>
+                Subtareas ({childTasks.length})
+              </button>
+            </h2>
+          </div>
+
+          {subtasksOpen && (
+            <div id="detail-subtasks" className="collapsible-card__body">
+              <FilteredTaskList
+                filters={detailFilters}
+                tasks={childTasks}
+                allTasks={tasks}
+                loading={loading}
+                busy={saving}
+                onChange={updateTask}
+                onDelete={handleDeleteTask}
+                onOpen={setSelectedTaskId}
+                emptyTitle="Esta tarea no tiene subtareas."
+                emptyHint="Añade una con el formulario de arriba."
+                countLabel="subtareas"
+              />
+            </div>
+          )}
         </section>
       </div>
     );
