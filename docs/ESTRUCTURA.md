@@ -63,6 +63,9 @@ Características principales:
   vuelve al desplegable.
 - **Gestión de categorías**: panel con un toggle de todas las categorías y un formulario para
   agregar, actualizar y eliminar; Eliminar/Actualizar usan el toggle e Agregar usa el input.
+- **Detalle y subtareas**: el título de cada tarea es un botón que abre su detalle; allí se editan
+  sus datos y categorías, se crean subtareas enlazadas y se listan sus hijas. La pantalla principal
+  solo muestra las tareas sin padre.
 - Logout real: revoca el refresh token en la base de datos y limpia la cookie.
 - Rate limiting en login/registro para frenar fuerza bruta.
 
@@ -200,7 +203,8 @@ backend/
 │   │   ├── 001_create_users.sql     Usuarios + función set_updated_at
 │   │   ├── 002_create_tasks.sql     Tareas (BIGSERIAL, prioridad, jerarquía, FK usuario)
 │   │   ├── 003_create_refresh_tokens.sql  Sesiones renovables (hash SHA-256)
-│   │   └── 004_create_categories.sql  Categorías + relación N:M task_categories
+│   │   ├── 004_create_categories.sql  Categorías + relación N:M task_categories
+│   │   └── 005_task_hierarchy.sql     CHECK: una tarea no puede ser su propio padre
 │   └── seeds/
 │       └── 001_seed_tasks.sql       Usuario demo + tareas + categorías de ejemplo
 ├── scripts/
@@ -370,8 +374,12 @@ seed precarga cuatro categorías. Al borrar una categoría, las asignaciones se 
 | `description` | `TEXT` | Nullable |
 | `status` | `VARCHAR(50)` | default `pending`, CHECK `pending/in_progress/done` |
 | `priority` | `VARCHAR(50)` | default `medium`, CHECK `low/medium/high/urgent` |
-| `parent_task_id` | `BIGINT` | Nullable, FK → `tasks(id)` `ON DELETE CASCADE` |
+| `parent_task_id` | `BIGINT` | Nullable, FK → `tasks(id)` `ON DELETE CASCADE`; CHECK `parent_task_id <> id` |
 | `created_at` / `updated_at` | `TIMESTAMP` | trigger `tasks_set_updated_at` |
+
+La relación es **auto-referenciada**: una tarea puede tener muchas hijas y cada hija tiene como
+máximo un padre (`parent_task_id`). La FK con `ON DELETE CASCADE` elimina toda la descendencia al
+borrar un padre. La migración `005` añade el CHECK que impide que una tarea sea su propio padre.
 
 Índices: `(user_id, created_at DESC)`, `(user_id, status)` y `(parent_task_id)`.
 
@@ -590,7 +598,9 @@ Content-Type: application/json
 
 - `status`: `pending` | `in_progress` | `done` (default `pending`).
 - `priority`: `low` | `medium` | `high` | `urgent` (default `medium`).
-- `parentTaskId`: id numérico de una tarea propia o `null` (subtareas).
+- `parentTaskId`: id numérico de una tarea propia o `null` (subtareas). El padre debe existir y
+  pertenecer al mismo usuario; una tarea no puede apuntarse a sí misma. `GET /tasks` devuelve todas
+  las tareas propias (raíces e hijas) y la pantalla principal filtra las que tienen padre.
 - `categoryIds`: array de ids existentes (máximo 20, sin duplicados). En `PATCH` reemplaza por
   completo las categorías; `[]` las vacía. Cada tarea devuelve `categories: [{ id, name, slug,
   color }]`.
@@ -664,8 +674,9 @@ frontend/
     │   ├── Alert.jsx              Mensajes de error accesibles
     │   ├── CategoryManager.jsx    Toggle + formulario CRUD de categorías
     │   ├── FilterDropdown.jsx     Desplegable de filtros inactivos
-    │   ├── TaskForm.jsx           Alta con estado, prioridad y categorías
-    │   ├── TaskItem.jsx           Badges, cambio de estado y borrado
+    │   ├── TaskDetail.jsx         Edición de la tarea abierta y sus categorías
+    │   ├── TaskForm.jsx           Alta de tareas y subtareas (parentTaskId)
+    │   ├── TaskItem.jsx           Título-botón, badges, estado y borrado
     │   └── TaskList.jsx           Lista, carga y vacío
     ├── constants/
     │   └── tasks.js               Estados y prioridades + etiquetas
@@ -688,15 +699,16 @@ frontend/
 | `src/api/categories.api.js` | Lista, crea, actualiza y elimina categorías; desempaqueta `{ data }`. |
 | `src/context/AuthContext.jsx` | Recupera la sesión al cargar con `/auth/refresh`, mantiene `user`, `initializing` y acciones `login`/`register`/`logout`. |
 | `src/pages/LoginPage.jsx` | Pestañas login/registro, validación local, errores de API, estado de envío y credenciales demo. |
-| `src/pages/TasksPage.jsx` | Hook de tareas, contadores, búsqueda, grupos de filtros, chips activos, gestión de categorías y filtrado combinado en cliente. |
-| `src/hooks/useTasks.js` | Carga inicial y operaciones CRUD con `saving`/`error`; sincroniza la lista con la respuesta del servidor. |
+| `src/pages/TasksPage.jsx` | Hook de tareas, tarea abierta, contadores, búsqueda, filtros, gestión de categorías y separación entre tareas raíz e hijas. |
+| `src/hooks/useTasks.js` | Carga inicial y operaciones CRUD con `saving`/`error`; sincroniza la lista y replica en memoria el borrado en cascada de las subtareas. |
 | `src/hooks/useCategories.js` | Carga el catálogo y expone `categories`, `loading`, `saving`, `error` y las acciones CRUD; mantiene la lista ordenada. |
 | `src/components/CategoryManager.jsx` | Toggle de todas las categorías + input y botones Agregar/Eliminar/Actualizar. Seleccionar un toggle rellena el input; Eliminar y Actualizar usan la categoría seleccionada e Agregar usa el texto. |
 | `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría); solo muestra opciones inactivas, cierra con clic fuera/Escape y permanece abierto al elegir. |
 | `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y reaparecen en el desplegable. |
-| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado, prioridad y selección múltiple de categorías en chips. |
-| `src/components/TaskItem.jsx` | Badges de estado, prioridad, categoría y subtarea; selector de estado y borrado con confirmación. |
-| `src/components/TaskList.jsx` | Renderiza la lista o los estados de carga/vacío. |
+| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado, prioridad y categorías. Acepta `parentTaskId`, `heading` y `submitLabel` para crear subtareas. |
+| `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, estado, prioridad, categorías, guardado y borrado. |
+| `src/components/TaskItem.jsx` | Título como botón accesible que abre el detalle; badges de estado, prioridad, categoría y subtarea; selector de estado y borrado. |
+| `src/components/TaskList.jsx` | Renderiza la lista o los estados de carga/vacío; reenvía la apertura del detalle. |
 | `src/components/Alert.jsx` | Mensaje `role="alert"` con reintentar/cerrar. |
 | `src/constants/tasks.js` | Enums y etiquetas en español. |
 | `src/index.css` | Tokens de diseño, layout, formularios, tarjetas, login, badges y responsive. |
@@ -714,6 +726,22 @@ frontend/
   aplica además como AND.
 - El filtrado se hace en el cliente sobre las tareas ya cargadas, por lo que no hay peticiones
   adicionales al cambiar de filtro.
+
+### Detalle y subtareas
+
+- En el listado, el título de cada tarea es un `<button>`; al pulsarlo `TasksPage` guarda su id y
+  sustituye la vista principal por la pantalla de detalle.
+- La pantalla de detalle muestra arriba la tarjeta **Editar tarea** (datos y categorías), fuera de
+  cualquier listado. Debajo aparece el mismo `TaskForm` de alta, configurado con
+  `parentTaskId`, `heading` y `submitLabel`, por lo que lo que se cree ahí queda enlazado como
+  subtarea.
+- Más abajo se listan solo las hijas directas de la tarea abierta; sus títulos también abren su
+  propio detalle. El botón de volver regresa al padre si existe o al listado principal.
+- La pantalla principal calcula `rootTasks = tasks.filter(parentTaskId === null)`; los contadores,
+  filtros y búsqueda trabajan sobre esas tareas raíz. Las hijas se ven en el detalle de su padre.
+- Al guardar, `useTasks` actualiza la tarea en memoria y el detalle refleja los cambios sin recargar.
+  Al borrar, la API elimina la descendencia por cascada y el hook retira también esas tareas de su
+  estado local.
 
 ### Gestión de categorías
 
@@ -777,14 +805,24 @@ React Router sería el siguiente paso.
 4. El cliente actualiza la cookie (automático) y repite `GET /api/tasks`.
 5. Si el refresh falla, se limpia la sesión y aparece el login.
 
-### Crear una tarea
+### Crear una tarea o subtarea
 
 1. `TaskForm` → `useTasks.createTask` → `tasksApi.create`.
-2. `POST /api/tasks` con Bearer y `categoryIds`.
-3. `requireAuth` → controlador → validador → servicio (valida padre y categorías existentes) →
-   repositorio.
+2. `POST /api/tasks` con Bearer, `categoryIds` y, si es una subtarea, `parentTaskId`.
+3. `requireAuth` → controlador → validador → servicio (valida que el padre sea del usuario y que las
+   categorías existan) → repositorio.
 4. El repositorio abre una transacción, inserta la tarea, inserta las filas de `task_categories` y
-   devuelve la tarea con `categories` agregadas; el hook la añade al estado.
+   devuelve la tarea con `categories` agregadas; el hook la añade al estado. En la vista principal
+   no aparece si tiene padre; en el detalle del padre sí.
+
+### Abrir el detalle y editar
+
+1. `TaskItem` renderiza el título como botón y llama `onOpen(task.id)`.
+2. `TasksPage` guarda `selectedTaskId`; si existe, renderiza `TaskDetail` arriba, el `TaskForm` de
+   subtareas debajo y el listado de hijas al final.
+3. `TaskDetail` guarda con `PATCH /api/tasks/:id` (incluye `categoryIds`), y `useTasks` actualiza esa
+   tarea en el array.
+4. El botón de volver regresa al padre (si la tarea abierta es una subtarea) o a la lista principal.
 
 ### Gestionar una categoría
 
@@ -846,6 +884,12 @@ React Router sería el siguiente paso.
 - **Gestión con toggle único**: el toggle selecciona la categoría sobre la que actúan Eliminar y
   Actualizar; el input alimenta Agregar y Actualizar. El borrado se confirma y cae en cascada.
 - **N:M con tabla puente** `task_categories` y PK compuesta; integridad garantizada por FKs.
+- **Jerarquía auto-referenciada**: `tasks.parent_task_id` permite muchas hijas por padre y un solo
+  padre por hija. La FK usa `ON DELETE CASCADE`; el CHECK impide el auto-parentesco y la API valida
+  que el padre sea del mismo usuario. La navegación del detalle se resuelve con estado (`selectedTaskId`),
+  sin añadir router.
+- **Pantalla principal solo con raíces**: el cliente filtra `parentTaskId === null`; el detalle
+  muestra las hijas directas y permite navegar a su propio detalle.
 - **Filtros multi-valor**: OR dentro del mismo tipo, AND entre tipos; búsqueda de texto aparte.
 - **Filtrado en cliente** sobre las tareas cargadas para que los chips sean instantáneos; la API
   expone los mismos filtros para otros clientes.
@@ -858,7 +902,7 @@ React Router sería el siguiente paso.
 
 ### Añadir un recurso nuevo (ej. `projects`)
 
-1. Migración `005_create_projects.sql` con `user_id` y FK.
+1. Una migración nueva (la siguiente sería `006_create_projects.sql`) con `user_id` y FK.
 2. `repositories/projects.repository.js`, `services/projects.service.js`,
    `validators/projects.validator.js`, `controllers/projects.controller.js`,
    `routes/projects.routes.js`.
@@ -887,12 +931,12 @@ React Router sería el siguiente paso.
 
 ## 16. Verificación realizada
 
-La verificación se hizo con **clústeres PostgreSQL temporales** (puertos 55434/55435, ya eliminados) y
-la API en los puertos 3011/3012:
+La verificación se hizo con **clústeres PostgreSQL temporales** (puertos 55434/55435/55436, ya
+eliminados) y la API en los puertos 3011/3012/3013:
 
 | Prueba | Resultado |
 | ------ | --------- |
-| Migraciones `001`–`004` sobre base limpia | OK |
+| Migraciones `001`–`005` sobre base limpia | OK |
 | Seed: usuario demo + 3 tareas + 4 categorías + 4 asignaciones | OK |
 | `GET /api/categories` autenticado | 200, 4 categorías con id/name/slug/color |
 | `GET /api/categories` sin token | 401 |
@@ -923,12 +967,20 @@ la API en los puertos 3011/3012:
 | Segundo usuario: lista vacía y catálogo visible | OK |
 | Segundo usuario: leer/modificar/borrar tarea ajena | 404 |
 | Borrar tarea propia | 204 y deja de existir |
+| Crear padre + hija A + hija B con `parentTaskId` | 201 y `parentTaskId` correcto |
+| Editar una hija (título, estado, prioridad y categorías) | 200 y datos actualizados |
+| Una tarea como su propio padre | 400 |
+| Usar como padre una tarea de otro usuario | 400 |
+| Crear una nieta (anidación) | 201 |
+| Borrar el padre con dos hijas y una nieta | 204 y cascada completa (GET hijas → 404) |
+| `UPDATE tasks SET parent_task_id = id` directo en PostgreSQL | bloqueado por `chk_tasks_parent_not_self` |
 | `docs/Database.sql` ejecutado dos veces | OK; 5 tablas y 16 índices |
 | Seed sobre el esquema de `Database.sql` | OK (3 tareas, 4 categorías, 4 asignaciones) |
-| `npm run build` del frontend | OK (46 módulos) |
+| `npm run build` del frontend | OK (47 módulos) |
 | Sintaxis de todos los archivos del backend (`node --check`, 30 archivos) | OK |
 
-Suite funcional: **44 comprobaciones de tareas/categorías + 34 de CRUD de categorías, 0 fallos**.
+Suite funcional: **44 comprobaciones de tareas/categorías + 34 de CRUD de categorías + 26 de
+jerarquía y cascada, 0 fallos**.
 
 ---
 

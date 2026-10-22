@@ -65,6 +65,12 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
 - El panel **Gestionar categorías** muestra un toggle con todo el catálogo: selecciona una para
   **Actualizar** o **Eliminar**, escribe un nombre y pulsa **Agregar categoría** para crear una
   nueva. Eliminar pide confirmación y quita la categoría de las tareas que la usen.
+- **Tareas y subtareas**: una tarea puede tener varias hijas mediante `tasks.parent_task_id`; cada
+  hija tiene como máximo un padre y el borrado del padre elimina su descendencia en cascada. La
+  base de datos impide que una tarea sea su propio padre.
+- El título de cada tarea es un botón que abre su **detalle**: allí se editan sus datos y categorías,
+  se crean subtareas enlazadas y se listan sus hijas directas. La pantalla principal solo muestra
+  las tareas sin padre.
 
 Endpoints principales: `POST /api/auth/register`, `POST /api/auth/login`,
 `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`, el CRUD de

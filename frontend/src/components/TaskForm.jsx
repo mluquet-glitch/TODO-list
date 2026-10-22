@@ -12,14 +12,25 @@ const INITIAL_FORM = {
 /**
  * Formulario de alta de tareas, con selección múltiple de categorías.
  * `onCreate` devuelve true/false para saber si limpiar el formulario.
+ * Con `parentTaskId` la tarea creada queda enlazada como subtarea.
  */
-export default function TaskForm({ categories = [], onCreate, saving }) {
+export default function TaskForm({
+  categories = [],
+  categoriesLoading = false,
+  onCreate,
+  saving,
+  parentTaskId = null,
+  heading = 'Nueva tarea',
+  submitLabel = 'Añadir tarea',
+}) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [localError, setLocalError] = useState('');
 
   // Si una categoría se elimina mientras el formulario la tenía marcada,
   // quitamos su id para no enviar una referencia inexistente.
   useEffect(() => {
+    if (categoriesLoading) return;
+
     setForm((current) => {
       const validIds = current.categoryIds.filter((id) =>
         categories.some((category) => category.id === id),
@@ -28,7 +39,7 @@ export default function TaskForm({ categories = [], onCreate, saving }) {
       if (validIds.length === current.categoryIds.length) return current;
       return { ...current, categoryIds: validIds };
     });
-  }, [categories]);
+  }, [categories, categoriesLoading]);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -60,6 +71,7 @@ export default function TaskForm({ categories = [], onCreate, saving }) {
       status: form.status,
       priority: form.priority,
       categoryIds: form.categoryIds,
+      ...(parentTaskId ? { parentTaskId } : {}),
     });
 
     if (created) setForm(INITIAL_FORM);
@@ -67,7 +79,7 @@ export default function TaskForm({ categories = [], onCreate, saving }) {
 
   return (
     <form className="card task-form" onSubmit={handleSubmit} noValidate>
-      <h2 className="card__title">Nueva tarea</h2>
+      <h2 className="card__title">{heading}</h2>
 
       <div className="field">
         <label htmlFor="task-title">Título</label>
@@ -165,7 +177,7 @@ export default function TaskForm({ categories = [], onCreate, saving }) {
       </div>
 
       <button type="submit" className="button button--primary" disabled={saving}>
-        {saving ? 'Guardando…' : 'Añadir tarea'}
+        {saving ? 'Guardando…' : submitLabel}
       </button>
     </form>
   );

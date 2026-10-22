@@ -1,7 +1,16 @@
 import TaskItem from './TaskItem.jsx';
 
 /** Listado de tareas con estados vacío y de carga. */
-export default function TaskList({ tasks, loading, busy, onChange, onDelete }) {
+export default function TaskList({
+  tasks,
+  loading,
+  busy,
+  onChange,
+  onDelete,
+  onOpen,
+  emptyTitle = 'No hay tareas que coincidan con el filtro.',
+  emptyHint = 'Crea una nueva tarea con el formulario de la izquierda.',
+}) {
   if (loading) {
     return <p className="muted">Cargando tareas…</p>;
   }
@@ -9,8 +18,8 @@ export default function TaskList({ tasks, loading, busy, onChange, onDelete }) {
   if (tasks.length === 0) {
     return (
       <div className="empty-state">
-        <p>No hay tareas que coincidan con el filtro.</p>
-        <p className="muted">Crea una nueva tarea con el formulario de la izquierda.</p>
+        <p>{emptyTitle}</p>
+        <p className="muted">{emptyHint}</p>
       </div>
     );
   }
@@ -23,6 +32,7 @@ export default function TaskList({ tasks, loading, busy, onChange, onDelete }) {
           task={task}
           onChange={onChange}
           onDelete={onDelete}
+          onOpen={onOpen}
           busy={busy}
         />
       ))}

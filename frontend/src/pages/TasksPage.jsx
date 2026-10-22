@@ -1,15 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ActiveFilters from '../components/ActiveFilters.jsx';
 import Alert from '../components/Alert.jsx';
 import CategoryManager from '../components/CategoryManager.jsx';
 import FilterDropdown from '../components/FilterDropdown.jsx';
+import TaskDetail from '../components/TaskDetail.jsx';
 import TaskForm from '../components/TaskForm.jsx';
 import TaskList from '../components/TaskList.jsx';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
 import { useCategories } from '../hooks/useCategories.js';
 import { useTasks } from '../hooks/useTasks.js';
 
-/** Página principal: formulario, filtros dinámicos y listado de tareas. */
+/** Página principal: formulario, filtros dinámicos y listado de tareas raíz. */
 export default function TasksPage() {
   const {
     tasks,
@@ -25,6 +26,7 @@ export default function TasksPage() {
 
   const {
     categories,
+    loading: categoriesLoading,
     saving: categorySaving,
     error: categoriesError,
     createCategory,
@@ -35,6 +37,33 @@ export default function TasksPage() {
 
   const [search, setSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+
+  const selectedTask = useMemo(
+    () => tasks.find((task) => task.id === selectedTaskId) ?? null,
+    [tasks, selectedTaskId],
+  );
+
+  const childTasks = useMemo(
+    () =>
+      selectedTask
+        ? tasks.filter((task) => task.parentTaskId === selectedTask.id)
+        : [],
+    [tasks, selectedTask],
+  );
+
+  // En la pantalla principal solo aparecen las tareas sin padre.
+  const rootTasks = useMemo(
+    () => tasks.filter((task) => task.parentTaskId === null),
+    [tasks],
+  );
+
+  // Si la tarea abierta se elimina, volvemos a la pantalla principal.
+  useEffect(() => {
+    if (selectedTaskId !== null && !loading && !selectedTask) {
+      setSelectedTaskId(null);
+    }
+  }, [selectedTaskId, selectedTask, loading]);
 
   // Opciones del desplegable: todos los valores filtrables de la base de datos.
   const filterGroups = useMemo(
@@ -84,7 +113,7 @@ export default function TasksPage() {
   );
 
   const counts = useMemo(() => {
-    return tasks.reduce(
+    return rootTasks.reduce(
       (acc, task) => {
         acc.all += 1;
         acc[task.status] = (acc[task.status] ?? 0) + 1;
@@ -92,12 +121,12 @@ export default function TasksPage() {
       },
       { all: 0, pending: 0, in_progress: 0, done: 0 },
     );
-  }, [tasks]);
+  }, [rootTasks]);
 
   const visibleTasks = useMemo(() => {
     const term = search.trim().toLowerCase();
 
-    return tasks.filter((task) => {
+    return rootTasks.filter((task) => {
       const matchesStatus =
         selected.status.size === 0 || selected.status.has(task.status);
       const matchesPriority =
@@ -114,7 +143,7 @@ export default function TasksPage() {
 
       return matchesStatus && matchesPriority && matchesCategory && matchesSearch;
     });
-  }, [tasks, search, selected]);
+  }, [rootTasks, search, selected]);
 
   function addFilter(filter) {
     setActiveFilters((current) => {
@@ -163,10 +192,86 @@ export default function TasksPage() {
     return deleted;
   }
 
+  /** Elimina una tarea y, si era la abierta, vuelve a la pantalla principal. */
+  async function handleDeleteTask(id) {
+    const deleted = await removeTask(id);
+
+    if (deleted && id === selectedTaskId) {
+      setSelectedTaskId(null);
+    }
+
+    return deleted;
+  }
+
+  if (selectedTask) {
+    const parentTask = selectedTask.parentTaskId
+      ? tasks.find((task) => task.id === selectedTask.parentTaskId)
+      : null;
+
+    return (
+      <div className="task-detail-page">
+        <div className="task-detail-page__topbar">
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={() =>
+              setSelectedTaskId(parentTask ? parentTask.id : null)
+            }
+          >
+            {parentTask ? '← Volver al padre' : '← Volver a las tareas'}
+          </button>
+          <span className="muted">Detalle de la tarea</span>
+        </div>
+
+        <Alert type="error" message={error} onRetry={refresh} onClose={clearError} />
+
+        <TaskDetail
+          key={selectedTask.id}
+          task={selectedTask}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          saving={saving}
+          onUpdate={updateTask}
+          onDelete={handleDeleteTask}
+        />
+
+        <TaskForm
+          key={`subtask-${selectedTask.id}`}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          onCreate={createTask}
+          saving={saving}
+          parentTaskId={selectedTask.id}
+          heading={`Nueva subtarea de «${selectedTask.title}»`}
+          submitLabel="Añadir subtarea"
+        />
+
+        <section className="card">
+          <h2 className="card__title">Subtareas ({childTasks.length})</h2>
+          <TaskList
+            tasks={childTasks}
+            loading={loading}
+            busy={saving}
+            onChange={updateTask}
+            onDelete={handleDeleteTask}
+            onOpen={setSelectedTaskId}
+            emptyTitle="Esta tarea no tiene subtareas."
+            emptyHint="Añade una con el formulario de arriba."
+          />
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="tasks-page">
       <section className="tasks-page__sidebar">
-        <TaskForm categories={categories} onCreate={createTask} saving={saving} />
+        <TaskForm
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          onCreate={createTask}
+          saving={saving}
+        />
 
         <CategoryManager
           categories={categories}
@@ -230,12 +335,13 @@ export default function TasksPage() {
           loading={loading}
           busy={saving}
           onChange={updateTask}
-          onDelete={removeTask}
+          onDelete={handleDeleteTask}
+          onOpen={setSelectedTaskId}
         />
 
         {!loading && visibleTasks.length > 0 && (
           <p className="muted tasks-page__count">
-            Mostrando {visibleTasks.length} de {tasks.length} tareas.
+            Mostrando {visibleTasks.length} de {rootTasks.length} tareas principales.
           </p>
         )}
       </section>

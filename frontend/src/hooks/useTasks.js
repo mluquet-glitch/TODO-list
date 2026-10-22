@@ -74,7 +74,28 @@ export function useTasks() {
     (id) =>
       run(async () => {
         await tasksApi.remove(id);
-        setTasks((current) => current.filter((task) => task.id !== id));
+        setTasks((current) => {
+          // La FK elimina las subtareas en cascada; replicamos ese efecto
+          // en memoria para no dejar tareas huérfanas en la interfaz.
+          const removedIds = new Set([id]);
+          let found = true;
+
+          while (found) {
+            found = false;
+            for (const task of current) {
+              if (
+                task.parentTaskId !== null &&
+                removedIds.has(task.parentTaskId) &&
+                !removedIds.has(task.id)
+              ) {
+                removedIds.add(task.id);
+                found = true;
+              }
+            }
+          }
+
+          return current.filter((task) => !removedIds.has(task.id));
+        });
       }, 'No se pudo eliminar la tarea'),
     [run],
   );

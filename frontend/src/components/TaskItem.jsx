@@ -1,7 +1,7 @@
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '../constants/tasks.js';
 
-/** Tarjeta de una tarea: badges, cambio de estado y borrado. */
-export default function TaskItem({ task, onChange, onDelete, busy }) {
+/** Tarjeta de una tarea: título clicable, badges, cambio de estado y borrado. */
+export default function TaskItem({ task, onChange, onDelete, onOpen, busy }) {
   async function handleDelete() {
     if (window.confirm(`¿Eliminar la tarea "${task.title}"?`)) {
       await onDelete(task.id);
@@ -12,7 +12,16 @@ export default function TaskItem({ task, onChange, onDelete, busy }) {
     <li className={`task task--${task.status}`}>
       <div className="task__body">
         <div className="task__heading">
-          <h3 className="task__title">{task.title}</h3>
+          <h3 className="task__title">
+            <button
+              type="button"
+              className="task__title-button"
+              onClick={() => onOpen?.(task.id)}
+              title="Abrir detalle de la tarea"
+            >
+              {task.title}
+            </button>
+          </h3>
 
           <span className={`badge badge--${task.status}`}>
             {STATUS_LABELS[task.status] ?? task.status}

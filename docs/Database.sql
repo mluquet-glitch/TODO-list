@@ -71,7 +71,7 @@ CREATE TABLE tasks (
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     priority VARCHAR(50) NOT NULL DEFAULT 'medium',
 
-    -- La tarea padre
+    -- Relación auto-referenciada: muchas hijas por padre, un padre por hija.
     parent_task_id BIGINT NULL,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -91,7 +91,11 @@ CREATE TABLE tasks (
         CHECK (status IN ('pending', 'in_progress', 'done')),
 
     CONSTRAINT chk_tasks_priority
-        CHECK (priority IN ('low', 'medium', 'high', 'urgent'))
+        CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+
+    -- Una tarea puede tener varias hijas, pero nunca ser su propio padre.
+    CONSTRAINT chk_tasks_parent_not_self
+        CHECK (parent_task_id IS NULL OR parent_task_id <> id)
 );
 
 CREATE TRIGGER tasks_set_updated_at

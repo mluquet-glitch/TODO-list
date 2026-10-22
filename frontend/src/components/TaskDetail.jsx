@@ -1,0 +1,229 @@
+import { useEffect, useState } from 'react';
+import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
+
+function toForm(task) {
+  return {
+    title: task.title,
+    description: task.description ?? '',
+    status: task.status,
+    priority: task.priority,
+    categoryIds: (task.categories ?? []).map((category) => category.id),
+  };
+}
+
+/**
+ * Tarjeta de edición de la tarea seleccionada. Permite cambiar sus datos,
+ * reemplazar sus categorías y eliminarla.
+ */
+export default function TaskDetail({
+  task,
+  categories = [],
+  categoriesLoading = false,
+  saving,
+  onUpdate,
+  onDelete,
+}) {
+  const [form, setForm] = useState(() => toForm(task));
+  const [localError, setLocalError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  // Al navegar a otra tarea reiniciamos el formulario.
+  useEffect(() => {
+    setForm(toForm(task));
+    setLocalError('');
+    setSaved(false);
+    // Solo depende del id: guardar la tarea no debe borrar el aviso de guardado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id]);
+
+  // Si una categoría se elimina mientras estaba marcada, quitamos su id.
+  // No lo hacemos mientras el catálogo aún se está cargando para no borrar
+  // las categorías que la tarea ya tenía.
+  useEffect(() => {
+    if (categoriesLoading) return;
+
+    setForm((current) => {
+      const validIds = current.categoryIds.filter((id) =>
+        categories.some((category) => category.id === id),
+      );
+
+      if (validIds.length === current.categoryIds.length) return current;
+      return { ...current, categoryIds: validIds };
+    });
+  }, [categories, categoriesLoading]);
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+    setSaved(false);
+    if (localError) setLocalError('');
+  }
+
+  function toggleCategory(categoryId) {
+    setForm((current) => ({
+      ...current,
+      categoryIds: current.categoryIds.includes(categoryId)
+        ? current.categoryIds.filter((id) => id !== categoryId)
+        : [...current.categoryIds, categoryId],
+    }));
+    setSaved(false);
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const title = form.title.trim();
+    if (!title) {
+      setLocalError('El título es obligatorio.');
+      return;
+    }
+
+    const updated = await onUpdate(task.id, {
+      title,
+      description: form.description.trim() || null,
+      status: form.status,
+      priority: form.priority,
+      categoryIds: form.categoryIds,
+    });
+
+    if (updated) {
+      setSaved(true);
+      setLocalError('');
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(`¿Eliminar la tarea "${task.title}" y sus subtareas?`)) return;
+    await onDelete(task.id);
+  }
+
+  return (
+    <form className="card task-detail" onSubmit={handleSubmit} noValidate>
+      <div className="task-detail__header">
+        <div>
+          <h2 className="card__title">Editar tarea</h2>
+          <p className="muted task-detail__meta">
+            Tarea #{task.id}
+            {task.parentTaskId
+              ? ` · Subtarea de #${task.parentTaskId}`
+              : ' · Tarea principal'}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="button button--danger"
+          onClick={handleDelete}
+          disabled={saving}
+        >
+          Eliminar tarea
+        </button>
+      </div>
+
+      <div className="field">
+        <label htmlFor="detail-title">Título</label>
+        <input
+          id="detail-title"
+          name="title"
+          type="text"
+          value={form.title}
+          onChange={handleChange}
+          maxLength={255}
+          autoComplete="off"
+          aria-invalid={Boolean(localError)}
+        />
+        {localError && <span className="field__error">{localError}</span>}
+      </div>
+
+      <div className="field">
+        <label htmlFor="detail-description">Descripción</label>
+        <textarea
+          id="detail-description"
+          name="description"
+          rows={3}
+          value={form.description}
+          onChange={handleChange}
+          maxLength={2000}
+          placeholder="Detalles opcionales"
+        />
+      </div>
+
+      <div className="form-row">
+        <div className="field">
+          <label htmlFor="detail-status">Estado</label>
+          <select
+            id="detail-status"
+            name="status"
+            value={form.status}
+            onChange={handleChange}
+          >
+            {TASK_STATUSES.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="field">
+          <label htmlFor="detail-priority">Prioridad</label>
+          <select
+            id="detail-priority"
+            name="priority"
+            value={form.priority}
+            onChange={handleChange}
+          >
+            {TASK_PRIORITIES.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="field">
+        <span className="field__label">Categorías</span>
+        {categories.length === 0 ? (
+          <p className="muted">No hay categorías disponibles.</p>
+        ) : (
+          <div className="checkbox-group">
+            {categories.map((category) => {
+              const checked = form.categoryIds.includes(category.id);
+
+              return (
+                <label
+                  key={category.id}
+                  className={`checkbox-chip ${checked ? 'checkbox-chip--active' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleCategory(category.id)}
+                  />
+                  <span
+                    className="checkbox-chip__dot"
+                    style={{ backgroundColor: category.color }}
+                    aria-hidden="true"
+                  />
+                  {category.name}
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="task-detail__footer">
+        <button type="submit" className="button button--primary" disabled={saving}>
+          {saving ? 'Guardando…' : 'Guardar cambios'}
+        </button>
+        {saved && (
+          <span className="task-detail__saved" role="status">
+            Cambios guardados.
+          </span>
+        )}
+      </div>
+    </form>
+  );
+}

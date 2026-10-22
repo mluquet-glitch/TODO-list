@@ -506,6 +506,35 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.task__title-button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.task__title-button:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.task__title-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.task--done .task__title-button {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
 .task__description {
   color: var(--muted);
   font-size: 0.87rem;
@@ -893,6 +922,60 @@ label.checkbox-chip--active {
   border-radius: 5px;
   padding: 0.05rem 0.3rem;
   font-size: 0.72rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Detalle de tarea y subtareas
+--------------------------------------------------------------------------- */
+.task-detail-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.task-detail-page__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.task-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.task-detail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.task-detail__header .card__title {
+  margin-bottom: 0.15rem;
+}
+
+.task-detail__meta {
+  font-size: 0.78rem;
+}
+
+.task-detail__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.task-detail__saved {
+  color: var(--done);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 /* ---------------------------------------------------------------------------
