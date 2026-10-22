@@ -1,7 +1,7 @@
 # Gestor de Tareas
 
 Monorepo con backend Node.js + Express + PostgreSQL y frontend React + Vite, con autenticación JWT,
-tareas aisladas por usuario, categorías muchos-a-muchos y filtros dinámicos.
+tareas aisladas por usuario, categorías muchos-a-muchos, fechas límite y filtros dinámicos.
 
 ```
 backend/    API REST (Express, pg, JWT)  — http://localhost:3000/api
@@ -56,14 +56,19 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
 - Cada tarea puede tener **varias categorías** (relación N:M con `task_categories`) y una categoría
   puede estar en varias tareas.
 - El formulario permite seleccionar varias categorías; las tarjetas muestran sus badges de color.
-- El botón **Filtros** abre un desplegable con todos los filtros disponibles (estado, prioridad y
-  categorías). Se pueden activar varios a la vez, incluso varias categorías; las opciones activas se
-  marcan con ✓ y aparecen como chips. El panel permanece abierto para combinar filtros.
+- Cada tarea tiene una **fecha límite opcional** (`dueDate`, `YYYY-MM-DD`). Se muestra en la tarjeta
+  y se resalta en rojo si está vencida; se edita tanto al crear como en el detalle.
+- El botón **Filtros** abre un desplegable con todos los filtros disponibles (estado, prioridad,
+  categorías y fecha límite). Se pueden activar varios a la vez, incluso varias categorías o presets
+  de fecha; las opciones activas se marcan con ✓ y aparecen como chips. El panel permanece abierto
+  para combinar filtros.
+- Los presets de fecha son **Vencidas**, **Para hoy**, **Próximos 7 días** y **Sin fecha**.
 - Dentro de un mismo tipo los filtros se combinan con OR; entre tipos distintos, con AND. La
   búsqueda por texto se aplica además.
 - Los mismos filtros multi-selección están disponibles en la pantalla principal y en el listado de
   subtareas del detalle.
-- La API acepta `status`, `priority` y `categoryIds` multi-valor, además de `search`.
+- La API acepta `status`, `priority` y `categoryIds` multi-valor, además de `search`; cada tarea
+  incluye `dueDate` en las respuestas.
 - El panel **Gestionar categorías** muestra un toggle con todo el catálogo: selecciona una para
   **Actualizar** o **Eliminar**, escribe un nombre y pulsa **Agregar categoría** para crear una
   nueva. Eliminar pide confirmación y quita la categoría de las tareas que la usen.
@@ -82,4 +87,6 @@ Endpoints principales: `POST /api/auth/register`, `POST /api/auth/login`,
 
 La documentación completa (estructura, dependencias, responsabilidades, esquema, API y
 decisiones) está en [docs/ESTRUCTURA.md](docs/ESTRUCTURA.md). El esquema canónico de la base de
-datos está en [docs/Database.sql](docs/Database.sql).
+datos está en [docs/Database.sql](docs/Database.sql); para añadir la fecha límite a una base
+existente se puede ejecutar el script idempotente
+[docs/modificacion1.sql](docs/modificacion1.sql).

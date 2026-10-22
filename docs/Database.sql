@@ -71,6 +71,9 @@ CREATE TABLE tasks (
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     priority VARCHAR(50) NOT NULL DEFAULT 'medium',
 
+    -- Fecha límite opcional, sin hora.
+    due_date DATE NULL,
+
     -- Relación auto-referenciada: muchas hijas por padre, un padre por hija.
     parent_task_id BIGINT NULL,
 
@@ -105,6 +108,7 @@ EXECUTE FUNCTION set_updated_at();
 
 CREATE INDEX idx_tasks_user_created_at ON tasks (user_id, created_at DESC);
 CREATE INDEX idx_tasks_user_status ON tasks (user_id, status);
+CREATE INDEX idx_tasks_user_due_date ON tasks (user_id, due_date);
 CREATE INDEX idx_tasks_parent_task ON tasks (parent_task_id);
 
 -- -----------------------------------------------------------------------------

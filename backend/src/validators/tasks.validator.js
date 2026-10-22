@@ -5,6 +5,36 @@ export const TASK_STATUSES = ['pending', 'in_progress', 'done'];
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
 const INT_RE = /^[1-9]\d*$/;
+const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** Acepta `null`/vacío o una fecha real en formato YYYY-MM-DD. */
+function normalizeDateOnly(value, errors) {
+  if (value === null || value === undefined || value === '') return null;
+
+  const match = typeof value === 'string' ? DATE_ONLY_RE.exec(value) : null;
+  if (!match) {
+    errors.push('dueDate debe tener el formato YYYY-MM-DD');
+    return undefined;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  const isValid =
+    year >= 1000 &&
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day;
+
+  if (!isValid) {
+    errors.push('dueDate no es una fecha válida');
+    return undefined;
+  }
+
+  return value;
+}
 
 function normalizeString(value) {
   if (value === null || value === undefined) return null;
@@ -56,6 +86,9 @@ const parsers = {
       return undefined;
     }
     return value;
+  },
+  dueDate(value, errors) {
+    return normalizeDateOnly(value, errors);
   },
   parentTaskId(value, errors) {
     if (value === null || value === '') return null;
@@ -119,7 +152,7 @@ function parseBody(body, mode) {
 
   if (mode === 'update' && keys.length === 0) {
     errors.push(
-      'Envía al menos un campo editable: title, description, status, priority, parentTaskId o categoryIds',
+      'Envía al menos un campo editable: title, description, status, priority, dueDate, parentTaskId o categoryIds',
     );
   }
 

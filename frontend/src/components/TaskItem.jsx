@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '../constants/tasks.js';
+import { formatDateOnly, isTaskOverdue } from '../utils/dates.js';
 
 /**
  * Tarjeta de una tarea: título clicable, vista previa de la descripción,
@@ -53,6 +54,13 @@ export default function TaskItem({
         {task.description && (
           <p className="task__description" title={task.description}>
             {task.description}
+          </p>
+        )}
+
+        {task.dueDate && (
+          <p className={`task__due ${isTaskOverdue(task) ? 'task__due--overdue' : ''}`}>
+            {isTaskOverdue(task) ? 'Venció el ' : 'Fecha límite: '}
+            <time dateTime={task.dueDate}>{formatDateOnly(task.dueDate)}</time>
           </p>
         )}
 

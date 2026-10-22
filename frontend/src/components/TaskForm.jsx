@@ -6,6 +6,7 @@ const INITIAL_FORM = {
   description: '',
   status: 'pending',
   priority: 'medium',
+  dueDate: '',
   categoryIds: [],
 };
 
@@ -70,6 +71,7 @@ export default function TaskForm({
       description: form.description.trim() || null,
       status: form.status,
       priority: form.priority,
+      dueDate: form.dueDate || null,
       categoryIds: form.categoryIds,
       ...(parentTaskId ? { parentTaskId } : {}),
     });
@@ -107,6 +109,17 @@ export default function TaskForm({
           onChange={handleChange}
           maxLength={2000}
           placeholder="Detalles opcionales"
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="task-due-date">Fecha límite (opcional)</label>
+        <input
+          id="task-due-date"
+          name="dueDate"
+          type="date"
+          value={form.dueDate}
+          onChange={handleChange}
         />
       </div>
 

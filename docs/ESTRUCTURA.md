@@ -58,15 +58,18 @@ Características principales:
 - Todas las rutas de `/api/tasks` y `/api/categories` requieren autenticación y cada usuario solo
   ve sus tareas.
 - **Categorías N:M**: una tarea puede tener varias categorías y una categoría varias tareas.
-- **Filtros dinámicos multi-selección**: un desplegable reúne todos los filtros (estado, prioridad
-  y categorías). Se pueden activar varios a la vez, incluso varias categorías; las opciones activas
-  se marcan con ✓ y también aparecen como chips. Disponible en la pantalla principal y en el
-  listado de subtareas del detalle.
+- **Filtros dinámicos multi-selección**: un desplegable reúne todos los filtros (estado, prioridad,
+  categorías y fecha límite). Se pueden activar varios a la vez, incluso varias categorías o presets
+  de fecha; las opciones activas se marcan con ✓ y también aparecen como chips. Disponible en la
+  pantalla principal y en el listado de subtareas del detalle.
 - **Gestión de categorías**: panel con un toggle de todas las categorías y un formulario para
   agregar, actualizar y eliminar; Eliminar/Actualizar usan el toggle e Agregar usa el input.
 - **Detalle y subtareas**: el título de cada tarea es un botón que abre su detalle; allí se editan
   sus datos y categorías, se crean subtareas enlazadas y se listan sus hijas. La pantalla principal
   solo muestra las tareas sin padre.
+- **Fechas límite**: cada tarea puede tener una fecha opcional que se muestra en la tarjeta y se
+  resalta en rojo cuando está vencida; los filtros permiten ver vencidas, para hoy, próximas o sin
+  fecha.
 - **Tarjetas expandibles**: cada tarjeta muestra una línea de la descripción y un toggle que
   despliega sus subtareas, también con título y descripción recortada, en tonos apagados y
   clicables para abrir su detalle.
@@ -208,7 +211,8 @@ backend/
 │   │   ├── 002_create_tasks.sql     Tareas (BIGSERIAL, prioridad, jerarquía, FK usuario)
 │   │   ├── 003_create_refresh_tokens.sql  Sesiones renovables (hash SHA-256)
 │   │   ├── 004_create_categories.sql  Categorías + relación N:M task_categories
-│   │   └── 005_task_hierarchy.sql     CHECK: una tarea no puede ser su propio padre
+│   │   ├── 005_task_hierarchy.sql     CHECK: una tarea no puede ser su propio padre
+│   │   └── 006_task_due_date.sql      Fecha límite opcional (DATE) e índice
 │   └── seeds/
 │       └── 001_seed_tasks.sql       Usuario demo + tareas + categorías de ejemplo
 ├── scripts/
@@ -232,7 +236,7 @@ backend/
     ├── validators/
     │   ├── auth.validator.js        Email, contraseña y nombre
     │   ├── categories.validator.js  Nombre, color e id de categoría
-    │   └── tasks.validator.js       Ids, estados, prioridades, jerarquía y categoryIds
+    │   └── tasks.validator.js       Ids, estados, prioridades, fecha, jerarquía y categoryIds
     ├── services/
     │   ├── auth.service.js          bcrypt, sesiones, rotación y reuse detection
     │   ├── categories.service.js    Catálogo y verificación de categorías existentes
@@ -274,14 +278,14 @@ backend/
 | `src/controllers/tasks.controller.js` | Lee params/query/body (incluido `categoryIds`), usa `req.user.id` y responde con `{ data }`. |
 | `src/validators/auth.validator.js` | Normaliza email (minúsculas, formato, ≤255), exige contraseña de 8–72 con letra y número, y nombre de 2–120. |
 | `src/validators/categories.validator.js` | `name` obligatorio al crear (1–80), color hexadecimal opcional y `id` entero positivo. |
-| `src/validators/tasks.validator.js` | Ids enteros positivos, `title` ≤255, `description` ≤2000, estados/prioridades permitidos, `parentTaskId` opcional y `categoryIds` (array de hasta 20 ids únicos). |
+| `src/validators/tasks.validator.js` | Ids enteros positivos, `title` ≤255, `description` ≤2000, estados/prioridades permitidos, `dueDate` opcional en `YYYY-MM-DD` (fecha real), `parentTaskId` y `categoryIds` (hasta 20 ids únicos). |
 | `src/services/auth.service.js` | Hash bcrypt (coste 12), login con mensaje genérico, creación de sesión, rotación del refresh token y revocación global ante reutilización. |
 | `src/services/categories.service.js` | Lista, crea, actualiza y elimina categorías; genera un slug único, evita nombres duplicados (sin distinguir mayúsculas) y valida que los `categoryIds` existan. |
 | `src/services/tasks.service.js` | Normaliza filtros multi-valor, 404, validación de la tarea padre (misma persona), categorías existentes y paso del `userId` al repositorio. |
 | `src/repositories/users.repository.js` | SQL de usuarios; solo expone `password_hash` en consultas internas de login. |
 | `src/repositories/refreshTokens.repository.js` | Alta, búsqueda por hash, rotación atómica (revocar + insertar) y revocación por token/usuario. |
 | `src/repositories/categories.repository.js` | SQL del catálogo global: listado, búsqueda por id/nombre/slug, alta, actualización y borrado. |
-| `src/repositories/tasks.repository.js` | Todo el SQL de tareas; **cada consulta filtra por `user_id`**, agrega categorías con `json_agg` y escribe tarea + relación N:M en transacción. |
+| `src/repositories/tasks.repository.js` | Todo el SQL de tareas; **cada consulta filtra por `user_id`**, devuelve `due_date` como `YYYY-MM-DD`, agrega categorías con `json_agg` y escribe tarea + relación N:M en transacción. |
 | `src/utils/jwt.js` | Firma/verifica el access token con `issuer` y `audience` fijos. |
 | `src/utils/tokens.js` | Genera refresh tokens con `randomBytes(48)`, calcula SHA-256 y la fecha de expiración. |
 | `src/utils/cookies.js` | Cookie `refresh_token` httpOnly, `SameSite` configurable, `Secure` en producción y `Path=/api/auth`. |
@@ -336,7 +340,8 @@ Sin `devDependencies`: la recarga usa `node --watch` nativo.
 ## 7. Base de datos
 
 El esquema completo y ejecutable está en [`docs/Database.sql`](Database.sql), alineado con las
-migraciones.
+migraciones. Para una base creada antes de la fecha límite, el cambio puntual está en
+[`docs/modificacion1.sql`](modificacion1.sql), que añade `due_date` e índice de forma idempotente.
 
 > `Database.sql` es un script de **inicialización destructivo**: ejecuta
 > `DROP TABLE ... CASCADE` sobre `refresh_tokens`, `task_categories`, `tasks`, `categories` y
@@ -378,6 +383,7 @@ seed precarga cuatro categorías. Al borrar una categoría, las asignaciones se 
 | `description` | `TEXT` | Nullable |
 | `status` | `VARCHAR(50)` | default `pending`, CHECK `pending/in_progress/done` |
 | `priority` | `VARCHAR(50)` | default `medium`, CHECK `low/medium/high/urgent` |
+| `due_date` | `DATE` | Nullable; fecha límite sin hora (`YYYY-MM-DD`) |
 | `parent_task_id` | `BIGINT` | Nullable, FK → `tasks(id)` `ON DELETE CASCADE`; CHECK `parent_task_id <> id` |
 | `created_at` / `updated_at` | `TIMESTAMP` | trigger `tasks_set_updated_at` |
 
@@ -385,7 +391,9 @@ La relación es **auto-referenciada**: una tarea puede tener muchas hijas y cada
 máximo un padre (`parent_task_id`). La FK con `ON DELETE CASCADE` elimina toda la descendencia al
 borrar un padre. La migración `005` añade el CHECK que impide que una tarea sea su propio padre.
 
-Índices: `(user_id, created_at DESC)`, `(user_id, status)` y `(parent_task_id)`.
+Índices: `(user_id, created_at DESC)`, `(user_id, status)`, `(user_id, due_date)` y
+`(parent_task_id)`. La migración `006` (y el script idempotente
+[`modificacion1.sql`](modificacion1.sql)) añaden `due_date` y su índice.
 
 ### `task_categories`
 
@@ -595,6 +603,7 @@ Content-Type: application/json
   "description": "Revisar variables y migraciones",
   "status": "pending",
   "priority": "high",
+  "dueDate": "2026-11-15",
   "parentTaskId": null,
   "categoryIds": [1, 3]
 }
@@ -602,6 +611,8 @@ Content-Type: application/json
 
 - `status`: `pending` | `in_progress` | `done` (default `pending`).
 - `priority`: `low` | `medium` | `high` | `urgent` (default `medium`).
+- `dueDate`: fecha límite opcional en `YYYY-MM-DD` o `null`. El backend valida que sea una fecha
+  real (rechaza `2026-02-31`) y la API la devuelve siempre sin hora.
 - `parentTaskId`: id numérico de una tarea propia o `null` (subtareas). El padre debe existir y
   pertenecer al mismo usuario; una tarea no puede apuntarse a sí misma. `GET /tasks` devuelve todas
   las tareas propias (raíces e hijas) y la pantalla principal filtra las que tienen padre.
@@ -690,6 +701,8 @@ frontend/
     │   ├── useCategories.js       Carga única del catálogo
     │   ├── useTaskFilters.js      Búsqueda y filtros multi-valor compartidos
     │   └── useTasks.js            Estado y CRUD de tareas
+    ├── utils/
+    │   └── dates.js               Fechas sin hora, formato y detección de vencidas
     └── pages/
         ├── LoginPage.jsx          Login/registro en una pantalla
         └── TasksPage.jsx          Formulario, resumen, filtros y listado
@@ -709,15 +722,16 @@ frontend/
 | `src/pages/TasksPage.jsx` | Hook de tareas, tarea abierta, contadores, búsqueda, filtros, gestión de categorías y separación entre tareas raíz e hijas. |
 | `src/hooks/useTasks.js` | Carga inicial y operaciones CRUD con `saving`/`error`; sincroniza la lista y replica en memoria el borrado en cascada de las subtareas. |
 | `src/hooks/useCategories.js` | Carga el catálogo y expone `categories`, `loading`, `saving`, `error` y las acciones CRUD; mantiene la lista ordenada. |
-| `src/hooks/useTaskFilters.js` | Encapsula búsqueda, filtros activos, grupos de opciones y el filtrado OR/AND. Permite varios estados, prioridades y categorías a la vez. |
+| `src/hooks/useTaskFilters.js` | Encapsula búsqueda, filtros activos, grupos de opciones y el filtrado OR/AND. Permite varios estados, prioridades, categorías y presets de fecha límite a la vez. |
+| `src/utils/dates.js` | Trabaja con `YYYY-MM-DD` sin desfases de zona horaria: parseo local, suma de días, formato español y detección de tareas vencidas. |
 | `src/components/CategoryManager.jsx` | Toggle de todas las categorías + input y botones Agregar/Eliminar/Actualizar. Seleccionar un toggle rellena el input; Eliminar y Actualizar usan la categoría seleccionada e Agregar usa el texto. |
-| `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría). Cada opción se activa/desactiva con `aria-pressed` y ✓; el panel permanece abierto para combinar varias. |
+| `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría, fecha límite). Cada opción se activa/desactiva con `aria-pressed` y ✓; el panel permanece abierto para combinar varias. |
 | `src/components/FilteredTaskList.jsx` | Barra de búsqueda, desplegable, chips, listado y contador; se usa tanto en la pantalla principal como en las subtareas del detalle. |
 | `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y su opción deja de estar marcada en el desplegable. |
-| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado, prioridad y categorías. Acepta `parentTaskId`, `heading` y `submitLabel` para crear subtareas. |
-| `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, estado, prioridad, categorías, guardado y borrado. |
+| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, fecha límite, estado, prioridad y categorías. Acepta `parentTaskId`, `heading` y `submitLabel` para crear subtareas. |
+| `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, fecha límite, estado, prioridad, categorías, guardado y borrado. |
 | `src/components/TaskHierarchyIndex.jsx` | Índice superior con la tarea padre (la propia si es raíz) y todas sus hijas directas; la tarea abierta se marca en rojo y cada entrada permite navegar. |
-| `src/components/TaskItem.jsx` | Título-botón, vista previa de descripción en una línea, badges, toggle de subtareas (título + descripción recortada, clicables) y acciones de estado/borrado. |
+| `src/components/TaskItem.jsx` | Título-botón, vista previa de descripción en una línea, fecha límite (en rojo si está vencida), badges, toggle de subtareas clicables y acciones de estado/borrado. |
 | `src/components/TaskList.jsx` | Agrupa las hijas por `parentTaskId` y renderiza la lista o los estados de carga/vacío; reenvía la apertura del detalle. |
 | `src/components/Alert.jsx` | Mensaje `role="alert"` con reintentar/cerrar. |
 | `src/constants/tasks.js` | Enums y etiquetas en español. |
@@ -726,15 +740,17 @@ frontend/
 ### Filtros en la interfaz
 
 - El botón **Filtros** abre un desplegable con todos los valores filtrables del catálogo y los
-  enums: estado, prioridad y categorías (estas últimas llegan de `GET /api/categories`).
+  enums: estado, prioridad, categorías (de `GET /api/categories`) y fecha límite.
 - Cada opción se puede **activar y desactivar** sin cerrar el panel. Las activas se marcan con ✓ y
   se añaden como chips; el contador del botón refleja cuántos filtros hay activos. Se pueden tener
   varias opciones del mismo tipo a la vez, incluidas **varias categorías**.
 - Al pulsar un chip activo se retira ese filtro y su opción deja de estar marcada. «Limpiar todo»
   retira todos los chips a la vez.
-- Dentro del mismo tipo los valores se combinan con **OR** (p. ej. `pending` o `in_progress`, o
-  varias categorías); entre tipos distintos, con **AND** (estado + prioridad + categoría). La
-  búsqueda por texto se aplica además como AND.
+- El grupo **Fecha límite** ofrece presets: `Vencidas` (fecha pasada y tarea no completada),
+  `Para hoy`, `Próximos 7 días` y `Sin fecha`. Se combinan con OR entre sí.
+- Dentro del mismo tipo los valores se combinan con **OR** (p. ej. `pending` o `in_progress`, varias
+  categorías o varios presets de fecha); entre tipos distintos, con **AND** (estado + prioridad +
+  categoría + fecha). La búsqueda por texto se aplica además como AND.
 - `FilteredTaskList` + `useTaskFilters` aplican la misma lógica en la pantalla principal y en el
   listado de subtareas del detalle. El filtrado se hace en el cliente sobre las tareas ya cargadas,
   por lo que no hay peticiones adicionales al cambiar de filtro.
@@ -824,9 +840,9 @@ React Router sería el siguiente paso.
 ### Crear una tarea o subtarea
 
 1. `TaskForm` → `useTasks.createTask` → `tasksApi.create`.
-2. `POST /api/tasks` con Bearer, `categoryIds` y, si es una subtarea, `parentTaskId`.
-3. `requireAuth` → controlador → validador → servicio (valida que el padre sea del usuario y que las
-   categorías existan) → repositorio.
+2. `POST /api/tasks` con Bearer, `dueDate`, `categoryIds` y, si es una subtarea, `parentTaskId`.
+3. `requireAuth` → controlador → validador (incluida la fecha real) → servicio (valida que el padre
+   sea del usuario y que las categorías existan) → repositorio.
 4. El repositorio abre una transacción, inserta la tarea, inserta las filas de `task_categories` y
    devuelve la tarea con `categories` agregadas; el hook la añade al estado. En la vista principal
    no aparece si tiene padre; en el detalle del padre sí.
@@ -836,8 +852,8 @@ React Router sería el siguiente paso.
 1. `TaskItem` renderiza el título como botón y llama `onOpen(task.id)`.
 2. `TasksPage` guarda `selectedTaskId`; si existe, renderiza `TaskDetail` arriba, el `TaskForm` de
    subtareas debajo y el listado de hijas al final.
-3. `TaskDetail` guarda con `PATCH /api/tasks/:id` (incluye `categoryIds`), y `useTasks` actualiza esa
-   tarea en el array.
+3. `TaskDetail` guarda con `PATCH /api/tasks/:id` (incluye `dueDate` y `categoryIds`), y `useTasks`
+   actualiza esa tarea en el array.
 4. El botón de volver regresa al padre (si la tarea abierta es una subtarea) o a la lista principal.
 
 ### Gestionar una categoría
@@ -851,13 +867,14 @@ React Router sería el siguiente paso.
 
 ### Añadir y quitar filtros
 
-1. `useCategories` carga una vez el catálogo y `TasksPage` construye los grupos (estado, prioridad,
-   categoría).
-2. Al elegir una opción, `TasksPage` la guarda en `activeFilters` y `FilterDropdown` deja de
-   mostrarla (sigue abierto).
-3. `ActiveFilters` pinta un chip por filtro; al pulsarlo se elimina del estado y la opción vuelve al
-   desplegable.
+1. `useCategories` carga una vez el catálogo y `useTaskFilters` construye los grupos (estado,
+   prioridad, categoría y fecha límite).
+2. Al elegir una opción, `useTaskFilters` la guarda en `activeFilters`; `FilterDropdown` mantiene
+   todas las opciones visibles y marca las activas con ✓.
+3. `ActiveFilters` pinta un chip por filtro; al pulsarlo se elimina del estado y su opción deja de
+   estar marcada.
 4. `visibleTasks` recalcula en memoria: OR dentro de cada tipo y AND entre tipos, más la búsqueda.
+   Las fechas se comparan como `YYYY-MM-DD` para evitar desfases horarios.
 
 ---
 
@@ -952,7 +969,7 @@ eliminados) y la API en los puertos 3011/3012/3013:
 
 | Prueba | Resultado |
 | ------ | --------- |
-| Migraciones `001`–`005` sobre base limpia | OK |
+| Migraciones `001`–`006` sobre base limpia | OK; `due_date DATE` e índice `(user_id, due_date)` |
 | Seed: usuario demo + 3 tareas + 4 categorías + 4 asignaciones | OK |
 | `GET /api/categories` autenticado | 200, 4 categorías con id/name/slug/color |
 | `GET /api/categories` sin token | 401 |
@@ -990,13 +1007,25 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | Crear una nieta (anidación) | 201 |
 | Borrar el padre con dos hijas y una nieta | 204 y cascada completa (GET hijas → 404) |
 | `UPDATE tasks SET parent_task_id = id` directo en PostgreSQL | bloqueado por `chk_tasks_parent_not_self` |
-| `docs/Database.sql` ejecutado dos veces | OK; 5 tablas y 16 índices |
+| Crear tarea con `dueDate` | 201 y `dueDate` devuelto como `YYYY-MM-DD` |
+| `PATCH` con `dueDate: null` | 200 y fecha borrada |
+| `dueDate` con `2026-02-31` | 400; la fecha debe existir en el calendario |
+| Tarjetas con fecha y sin fecha | fecha formateada en español; «Sin fecha» no muestra línea |
+| Tarea pendiente con fecha pasada | línea en rojo «Venció el …» |
+| Tarea completada con fecha pasada | no se marca como vencida |
+| Filtros `Vencidas`, `Para hoy`, `Próximos 7 días` y `Sin fecha` | resultados correctos |
+| OR entre `Vencidas` y `Sin fecha` | muestra ambas categorías de fecha |
+| Alta y edición de fecha desde la interfaz | tarjeta y `#detail-due-date` actualizados |
+| Desplegable de subtareas tras añadir fechas | sigue mostrando título y descripción |
+| `docs/modificacion1.sql` ejecutado dos veces | OK; añade columna e índice de forma idempotente |
+| `docs/Database.sql` ejecutado dos veces | OK; 5 tablas y 17 índices |
 | Seed sobre el esquema de `Database.sql` | OK (3 tareas, 4 categorías, 4 asignaciones) |
-| `npm run build` del frontend | OK (50 módulos) |
+| `npm run build` del frontend | OK (51 módulos) |
 | Sintaxis de todos los archivos del backend (`node --check`, 30 archivos) | OK |
 
-Suite funcional: **44 comprobaciones de tareas/categorías + 34 de CRUD de categorías + 26 de
-jerarquía y cascada, 0 fallos**.
+Suite funcional previa: **44 comprobaciones de tareas/categorías + 34 de CRUD de categorías + 26 de
+jerarquía y cascada, 0 fallos**. La verificación de fecha añadió las comprobaciones de la tabla
+anterior, también sin fallos.
 
 ---
 

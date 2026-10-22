@@ -1,5 +1,39 @@
 import { useCallback, useMemo, useState } from 'react';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
+import { addDaysDateOnly, todayDateOnly } from '../utils/dates.js';
+
+const DUE_DATE_OPTIONS = [
+  { value: 'overdue', label: 'Vencidas' },
+  { value: 'today', label: 'Para hoy' },
+  { value: 'week', label: 'Próximos 7 días' },
+  { value: 'none', label: 'Sin fecha' },
+];
+
+/** OR entre las opciones de fecha seleccionadas. */
+function matchesDueDate(task, selected, today) {
+  if (selected.size === 0) return true;
+
+  const weekEnd = addDaysDateOnly(today, 7);
+
+  return [...selected].some((option) => {
+    switch (option) {
+      case 'overdue':
+        return (
+          Boolean(task.dueDate) &&
+          task.status !== 'done' &&
+          task.dueDate < today
+        );
+      case 'today':
+        return task.dueDate === today;
+      case 'week':
+        return Boolean(task.dueDate) && task.dueDate >= today && task.dueDate <= weekEnd;
+      case 'none':
+        return !task.dueDate;
+      default:
+        return false;
+    }
+  });
+}
 
 /**
  * Estado y lógica de filtros compartidos por la pantalla principal y el detalle.
@@ -31,6 +65,11 @@ export function useTaskFilters(categories) {
           color: category.color,
         })),
       },
+      {
+        type: 'dueDate',
+        label: 'Fecha límite',
+        options: DUE_DATE_OPTIONS,
+      },
     ],
     [categories],
   );
@@ -51,6 +90,7 @@ export function useTaskFilters(categories) {
           status: new Set(),
           priority: new Set(),
           category: new Set(),
+          dueDate: new Set(),
         },
       ),
     [activeFilters],
@@ -109,6 +149,7 @@ export function useTaskFilters(categories) {
   const filterTasks = useCallback(
     (tasks) => {
       const term = search.trim().toLowerCase();
+      const today = todayDateOnly();
 
       return tasks.filter((task) => {
         const matchesStatus =
@@ -120,12 +161,19 @@ export function useTaskFilters(categories) {
           (task.categories ?? []).some((category) =>
             selected.category.has(category.id),
           );
+        const matchesDate = matchesDueDate(task, selected.dueDate, today);
         const matchesSearch =
           !term ||
           task.title.toLowerCase().includes(term) ||
           (task.description ?? '').toLowerCase().includes(term);
 
-        return matchesStatus && matchesPriority && matchesCategory && matchesSearch;
+        return (
+          matchesStatus &&
+          matchesPriority &&
+          matchesCategory &&
+          matchesDate &&
+          matchesSearch
+        );
       });
     },
     [search, selected],

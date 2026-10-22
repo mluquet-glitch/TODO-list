@@ -7,6 +7,7 @@ function toForm(task) {
     description: task.description ?? '',
     status: task.status,
     priority: task.priority,
+    dueDate: task.dueDate ?? '',
     categoryIds: (task.categories ?? []).map((category) => category.id),
   };
 }
@@ -83,6 +84,7 @@ export default function TaskDetail({
       description: form.description.trim() || null,
       status: form.status,
       priority: form.priority,
+      dueDate: form.dueDate || null,
       categoryIds: form.categoryIds,
     });
 
@@ -145,6 +147,17 @@ export default function TaskDetail({
           onChange={handleChange}
           maxLength={2000}
           placeholder="Detalles opcionales"
+        />
+      </div>
+
+      <div className="field">
+        <label htmlFor="detail-due-date">Fecha límite (opcional)</label>
+        <input
+          id="detail-due-date"
+          name="dueDate"
+          type="date"
+          value={form.dueDate}
+          onChange={handleChange}
         />
       </div>
 
