@@ -28,6 +28,20 @@ export default function TaskItem({ task, onChange, onDelete, busy }) {
         </div>
 
         {task.description && <p className="task__description">{task.description}</p>}
+
+        {task.categories?.length > 0 && (
+          <div className="task__categories">
+            {task.categories.map((category) => (
+              <span
+                key={category.id}
+                className="badge badge--category"
+                style={{ color: category.color, borderColor: category.color }}
+              >
+                {category.name}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="task__actions">

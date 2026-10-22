@@ -3,6 +3,7 @@ import { checkDatabase } from '../config/db.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { requireAuth } from '../middlewares/auth.js';
 import authRouter from './auth.routes.js';
+import categoriesRouter from './categories.routes.js';
 import tasksRouter from './tasks.routes.js';
 
 const router = Router();
@@ -23,6 +24,9 @@ router.get(
 );
 
 router.use('/auth', authRouter);
+
+// Catálogo compartido de categorías (requiere sesión).
+router.use('/categories', requireAuth, categoriesRouter);
 
 // Todas las rutas de tareas exigen un access token válido.
 router.use('/tasks', requireAuth, tasksRouter);

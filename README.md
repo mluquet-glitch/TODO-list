@@ -1,7 +1,7 @@
 # Gestor de Tareas
 
-Monorepo con backend Node.js + Express + PostgreSQL y frontend React + Vite, con autenticación JWT
-y tareas aisladas por usuario.
+Monorepo con backend Node.js + Express + PostgreSQL y frontend React + Vite, con autenticación JWT,
+tareas aisladas por usuario, categorías muchos-a-muchos y filtros dinámicos.
 
 ```
 backend/    API REST (Express, pg, JWT)  — http://localhost:3000/api
@@ -51,8 +51,21 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
 - Logout real y rate limiting en login/registro.
 - Cada usuario solo puede ver y modificar sus propias tareas.
 
+## Tareas, categorías y filtros
+
+- Cada tarea puede tener **varias categorías** (relación N:M con `task_categories`) y una categoría
+  puede estar en varias tareas.
+- El formulario permite seleccionar varias categorías; las tarjetas muestran sus badges de color.
+- El botón **Filtros** abre un desplegable con todos los filtros disponibles (estado, prioridad y
+  categorías). Al elegir uno se añade como chip activo y desaparece del desplegable; al pulsar el
+  chip se retira y vuelve a estar disponible.
+- Dentro de un mismo tipo los filtros se combinan con OR; entre tipos distintos, con AND. La
+  búsqueda por texto se aplica además.
+- La API acepta `status`, `priority` y `categoryIds` multi-valor, además de `search`.
+
 Endpoints principales: `POST /api/auth/register`, `POST /api/auth/login`,
-`POST /api/auth/refresh`, `POST /api/auth/logout` y `GET /api/auth/me`.
+`POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET /api/categories` y el
+CRUD en `/api/tasks`.
 
 La documentación completa (estructura, dependencias, responsabilidades, esquema, API y
 decisiones) está en [docs/ESTRUCTURA.md](docs/ESTRUCTURA.md). El esquema canónico de la base de

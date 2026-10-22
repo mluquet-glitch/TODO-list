@@ -66,6 +66,31 @@ const parsers = {
     }
     return id;
   },
+  categoryIds(value, errors) {
+    if (value === null) return [];
+
+    if (!Array.isArray(value)) {
+      errors.push('categoryIds debe ser un arreglo de ids');
+      return undefined;
+    }
+
+    if (value.length > 20) {
+      errors.push('categoryIds no puede contener más de 20 categorías');
+      return undefined;
+    }
+
+    const ids = [];
+    for (const item of value) {
+      const id = normalizeId(item);
+      if (typeof id !== 'number' || id <= 0) {
+        errors.push('categoryIds debe contener ids de categoría válidos');
+        return undefined;
+      }
+      if (!ids.includes(id)) ids.push(id);
+    }
+
+    return ids;
+  },
 };
 
 function parseBody(body, mode) {
@@ -94,7 +119,7 @@ function parseBody(body, mode) {
 
   if (mode === 'update' && keys.length === 0) {
     errors.push(
-      'Envía al menos un campo editable: title, description, status, priority o parentTaskId',
+      'Envía al menos un campo editable: title, description, status, priority, parentTaskId o categoryIds',
     );
   }
 

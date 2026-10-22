@@ -1,9 +1,10 @@
 # Estructura del proyecto — Gestor de Tareas con autenticación JWT
 
 Documentación del monorepo: backend (Node.js + Express + PostgreSQL) y frontend (React + Vite),
-incluyendo usuarios, autenticación JWT y aislamiento de tareas por usuario.
+incluyendo usuarios, autenticación JWT, aislamiento de tareas por usuario, categorías
+muchos-a-muchos y filtros dinámicos.
 
-> Rama: `feature/usuarios-jwt`. Esquema canónico en [`docs/Database.sql`](Database.sql).
+> Rama: `feature/filtros`. Esquema canónico en [`docs/Database.sql`](Database.sql).
 
 - [1. Visión general](#1-visión-general)
 - [2. Stack y requisitos](#2-stack-y-requisitos)
@@ -42,8 +43,10 @@ y no hay problemas de CORS ni de cookies.
 ┌──────────────────┐  HTTP/JSON + JWT  ┌──────────────────┐   SQL (pg)   ┌──────────────┐
 │ React + Vite     │ ────────────────► │ Express (Node.js)│ ───────────► │ PostgreSQL   │
 │ localhost:5173   │ ◄──────────────── │ localhost:3000   │ ◄─────────── │ users        │
-│                  │  cookie httpOnly  │                  │              │ tasks        │
-└──────────────────┘                   └──────────────────┘              │ refresh_...  │
+│                  │  cookie httpOnly  │                  │              │ categories   │
+└──────────────────┘                   └──────────────────┘              │ tasks        │
+                                                                        │ task_categ...│
+                                                                        │ refresh_...  │
                                                                         └──────────────┘
 ```
 
@@ -52,7 +55,12 @@ Características principales:
 - Registro y login con contraseñas hasheadas con **bcrypt** (coste 12).
 - **Access token JWT** de 15 minutos, enviado como `Authorization: Bearer`.
 - **Refresh token opaco** de 7 días en cookie `httpOnly`, con rotación y detección de reutilización.
-- Todas las rutas de `/api/tasks` requieren autenticación y cada usuario solo ve sus tareas.
+- Todas las rutas de `/api/tasks` y `/api/categories` requieren autenticación y cada usuario solo
+  ve sus tareas.
+- **Categorías N:M**: una tarea puede tener varias categorías y una categoría varias tareas.
+- **Filtros dinámicos**: un desplegable reúne todos los filtros de la base de datos (estado,
+  prioridad y categorías); al elegir uno se convierte en un chip activo y, al pulsarlo de nuevo,
+  vuelve al desplegable.
 - Logout real: revoca el refresh token en la base de datos y limpia la cookie.
 - Rate limiting en login/registro para frenar fuerza bruta.
 
@@ -95,7 +103,7 @@ Copy-Item .env.example .env      # Linux/macOS: cp .env.example .env
 # Ajustar DATABASE_URL y, en producción, JWT_ACCESS_SECRET
 npm install
 npm run db:migrate
-npm run db:seed                  # usuario demo + 3 tareas
+npm run db:seed                  # usuario demo + 3 tareas + 4 categorías
 npm run dev                      # http://localhost:3000/api
 ```
 
@@ -128,7 +136,8 @@ Abrir <http://localhost:5173>, iniciar sesión con la cuenta demo o crear una cu
 ### 3.4 Si ya tenías la base de la versión anterior
 
 El esquema cambió para alinearse con `docs/Database.sql` (ids `BIGSERIAL`, `priority`,
-`parent_task_id`, `user_id`). En un entorno **de desarrollo** sin datos que conservar:
+`parent_task_id`, `user_id`, categorías N:M). En un entorno **de desarrollo** sin datos que
+conservar:
 
 ```sql
 DROP SCHEMA public CASCADE;
@@ -188,9 +197,10 @@ backend/
 │   ├── migrations/
 │   │   ├── 001_create_users.sql     Usuarios + función set_updated_at
 │   │   ├── 002_create_tasks.sql     Tareas (BIGSERIAL, prioridad, jerarquía, FK usuario)
-│   │   └── 003_create_refresh_tokens.sql  Sesiones renovables (hash SHA-256)
+│   │   ├── 003_create_refresh_tokens.sql  Sesiones renovables (hash SHA-256)
+│   │   └── 004_create_categories.sql  Categorías + relación N:M task_categories
 │   └── seeds/
-│       └── 001_seed_tasks.sql       Usuario demo + tareas de ejemplo
+│       └── 001_seed_tasks.sql       Usuario demo + tareas + categorías de ejemplo
 ├── scripts/
 │   ├── migrate.js                   Runner de migraciones con control de aplicadas
 │   └── seed.js                      Ejecutor de seeds
@@ -201,22 +211,26 @@ backend/
     │   ├── env.js                   Variables de entorno validadas (BD, JWT, cookies)
     │   └── db.js                    Pool de pg, query(), transacciones, health check
     ├── routes/
-    │   ├── index.js                 Router /api: health, auth y tasks (protegido)
+    │   ├── index.js                 Router /api: health, auth, categories y tasks (protegidos)
     │   ├── auth.routes.js           Registro, login, refresh, logout y me
+    │   ├── categories.routes.js     Catálogo de categorías
     │   └── tasks.routes.js          CRUD de tareas
     ├── controllers/
     │   ├── auth.controller.js       Cookie httpOnly + respuestas de sesión
+    │   ├── categories.controller.js Capa HTTP del catálogo
     │   └── tasks.controller.js      Capa HTTP de tareas
     ├── validators/
     │   ├── auth.validator.js        Email, contraseña y nombre
-    │   └── tasks.validator.js       Ids numéricos, estados, prioridades, jerarquía
+    │   └── tasks.validator.js       Ids, estados, prioridades, jerarquía y categoryIds
     ├── services/
     │   ├── auth.service.js          bcrypt, sesiones, rotación y reuse detection
-    │   └── tasks.service.js         Reglas de negocio y aislamiento por usuario
+    │   ├── categories.service.js    Catálogo y verificación de categorías existentes
+    │   └── tasks.service.js         Reglas de negocio, filtros y aislamiento por usuario
     ├── repositories/
     │   ├── users.repository.js      SQL de usuarios
     │   ├── refreshTokens.repository.js  SQL de refresh tokens + rotación transaccional
-    │   └── tasks.repository.js      SQL de tareas (siempre filtra por user_id)
+    │   ├── categories.repository.js SQL del catálogo
+    │   └── tasks.repository.js      SQL de tareas + agregación de categorías
     ├── middlewares/
     │   ├── auth.js                  Verifica el Bearer token y adjunta req.user
     │   ├── rateLimit.js             Límite de intentos en auth
@@ -238,27 +252,31 @@ backend/
 | `src/app.js` | `helmet`, `cors` con credenciales, `express.json`, `cookie-parser`, `morgan`, monta `/api`, 404 y error handler. Exporta `app` para tests. |
 | `src/config/env.js` | Carga `.env` y valida PostgreSQL, secreto JWT (≥32 caracteres, obligatorio en producción), expiraciones y flags de cookie. |
 | `src/config/db.js` | Único `Pool` de conexiones; `query()` parametrizado, `getClient()` para transacciones, `checkDatabase()` y `closePool()`. |
-| `src/routes/index.js` | `GET /api/health`, `/api/auth` público y `/api/tasks` protegido con `requireAuth`. |
+| `src/routes/index.js` | `GET /api/health`, `/api/auth` público y `/api/categories` + `/api/tasks` protegidos con `requireAuth`. |
 | `src/routes/auth.routes.js` | `POST /register`, `/login`, `/refresh`, `/logout` y `GET /me`. Aplica `authLimiter` a registro/login. |
+| `src/routes/categories.routes.js` | Declara `GET /api/categories`. |
 | `src/routes/tasks.routes.js` | Declara los endpoints CRUD de tareas. |
 | `src/middlewares/auth.js` | Exige `Authorization: Bearer`, verifica firma/expiración/emisor/audiencia y coloca `req.user` (`id`, `email`, `role`). |
 | `src/middlewares/rateLimit.js` | Máximo 20 intentos cada 15 minutos en login/registro por IP. |
 | `src/controllers/auth.controller.js` | Valida el body, llama al servicio, envía la cookie httpOnly y responde `{ data: { user, accessToken } }`. |
-| `src/controllers/tasks.controller.js` | Lee params/query/body, usa `req.user.id` y responde con `{ data }`. |
+| `src/controllers/categories.controller.js` | Devuelve el catálogo como `{ data: categories }`. |
+| `src/controllers/tasks.controller.js` | Lee params/query/body (incluido `categoryIds`), usa `req.user.id` y responde con `{ data }`. |
 | `src/validators/auth.validator.js` | Normaliza email (minúsculas, formato, ≤255), exige contraseña de 8–72 con letra y número, y nombre de 2–120. |
-| `src/validators/tasks.validator.js` | Ids enteros positivos, `title` ≤255, `description` ≤2000, estados/prioridades permitidos y `parentTaskId` opcional. |
+| `src/validators/tasks.validator.js` | Ids enteros positivos, `title` ≤255, `description` ≤2000, estados/prioridades permitidos, `parentTaskId` opcional y `categoryIds` (array de hasta 20 ids únicos). |
 | `src/services/auth.service.js` | Hash bcrypt (coste 12), login con mensaje genérico, creación de sesión, rotación del refresh token y revocación global ante reutilización. |
-| `src/services/tasks.service.js` | Filtros válidos, 404, validación de la tarea padre (misma persona) y paso del `userId` al repositorio. |
+| `src/services/categories.service.js` | Lista el catálogo y comprueba que todos los `categoryIds` existan antes de asignarlos. |
+| `src/services/tasks.service.js` | Normaliza filtros multi-valor, 404, validación de la tarea padre (misma persona), categorías existentes y paso del `userId` al repositorio. |
 | `src/repositories/users.repository.js` | SQL de usuarios; solo expone `password_hash` en consultas internas de login. |
 | `src/repositories/refreshTokens.repository.js` | Alta, búsqueda por hash, rotación atómica (revocar + insertar) y revocación por token/usuario. |
-| `src/repositories/tasks.repository.js` | Todo el SQL de tareas; **cada consulta filtra por `user_id`** y usa parámetros. |
+| `src/repositories/categories.repository.js` | `SELECT` del catálogo global y búsqueda por ids. |
+| `src/repositories/tasks.repository.js` | Todo el SQL de tareas; **cada consulta filtra por `user_id`**, agrega categorías con `json_agg` y escribe tarea + relación N:M en transacción. |
 | `src/utils/jwt.js` | Firma/verifica el access token con `issuer` y `audience` fijos. |
 | `src/utils/tokens.js` | Genera refresh tokens con `randomBytes(48)`, calcula SHA-256 y la fecha de expiración. |
 | `src/utils/cookies.js` | Cookie `refresh_token` httpOnly, `SameSite` configurable, `Secure` en producción y `Path=/api/auth`. |
 | `src/utils/ApiError.js` | Error operativo con `statusCode`, `details` y helpers (`unauthorized`, `forbidden`, `notFound`, `conflict`). |
 | `src/utils/asyncHandler.js` | Reenvía rechazos async a `next()` para el error handler. |
 | `db/migrations/*.sql` | DDL versionado del esquema canónico. |
-| `db/seeds/001_seed_tasks.sql` | Inserta el usuario demo (hash bcrypt) y sus tareas si no existen. |
+| `db/seeds/001_seed_tasks.sql` | Inserta el usuario demo (hash bcrypt), 4 categorías y sus tareas/asignaciones si no existen. |
 | `scripts/migrate.js` | Crea `schema_migrations`, aplica `.sql` pendientes en orden y registra cada uno en una transacción. |
 | `scripts/seed.js` | Ejecuta los seeds en orden, cada uno en una transacción. |
 
@@ -309,9 +327,9 @@ El esquema completo y ejecutable está en [`docs/Database.sql`](Database.sql), a
 migraciones.
 
 > `Database.sql` es un script de **inicialización destructivo**: ejecuta
-> `DROP TABLE ... CASCADE` sobre `refresh_tokens`, `tasks` y `users` antes de crearlas, junto con
-> todos sus índices y triggers. Úsalo para recrear la base desde cero; para bases existentes usa
-> `npm run db:migrate`.
+> `DROP TABLE ... CASCADE` sobre `refresh_tokens`, `task_categories`, `tasks`, `categories` y
+> `users` antes de crearlas, junto con todos sus índices y triggers. Úsalo para recrear la base
+> desde cero; para bases existentes usa `npm run db:migrate`.
 
 ### `users`
 
@@ -323,6 +341,20 @@ migraciones.
 | `password_hash` | `VARCHAR(255)` | `NOT NULL` (bcrypt) |
 | `role` | `VARCHAR(20)` | `NOT NULL DEFAULT 'user'`, CHECK `user/admin` |
 | `created_at` / `updated_at` | `TIMESTAMP` | default `CURRENT_TIMESTAMP`; trigger en updates |
+
+### `categories`
+
+Catálogo **global** (compartido por todos los usuarios) de etiquetas asignables a las tareas. No
+hay CRUD por API: solo se expone el listado con `GET /api/categories`; las categorías se cargan con
+el seed o por SQL.
+
+| Columna | Tipo | Restricciones |
+| ------- | ---- | ------------- |
+| `id` | `BIGSERIAL` | PK |
+| `name` | `VARCHAR(80)` | `NOT NULL`, `UNIQUE` |
+| `slug` | `VARCHAR(80)` | `NOT NULL`, `UNIQUE` |
+| `color` | `VARCHAR(20)` | `NOT NULL DEFAULT '#64748b'` (hex para la UI) |
+| `created_at` | `TIMESTAMP` | default `CURRENT_TIMESTAMP` |
 
 ### `tasks`
 
@@ -338,6 +370,20 @@ migraciones.
 | `created_at` / `updated_at` | `TIMESTAMP` | trigger `tasks_set_updated_at` |
 
 Índices: `(user_id, created_at DESC)`, `(user_id, status)` y `(parent_task_id)`.
+
+### `task_categories`
+
+Relación **muchos a muchos** entre `tasks` y `categories`.
+
+| Columna | Tipo | Restricciones |
+| ------- | ---- | ------------- |
+| `task_id` | `BIGINT` | FK → `tasks(id)` `ON DELETE CASCADE`, PK compuesta |
+| `category_id` | `BIGINT` | FK → `categories(id)` `ON DELETE CASCADE`, PK compuesta |
+| `created_at` | `TIMESTAMP` | default `CURRENT_TIMESTAMP` |
+
+La PK `(task_id, category_id)` evita duplicados y cubre las búsquedas por tarea; el índice
+`idx_task_categories_category` cubre las consultas y filtros por categoría. Borrar una tarea o una
+categoría elimina sus asignaciones.
 
 ### `refresh_tokens`
 
@@ -355,9 +401,12 @@ migraciones.
 
 - `schema_migrations (name, applied_at)` registra qué archivos se aplicaron.
 - Cada migración corre en su propia transacción.
-- Los seeds son idempotentes: el usuario demo usa `ON CONFLICT DO NOTHING` y las tareas solo se
-  insertan si el usuario aún no tiene ninguna.
-- Para evolucionar el esquema se añade un archivo nuevo (`004_...sql`), nunca se edita uno aplicado.
+- Los seeds son idempotentes: el usuario demo usa `ON CONFLICT DO NOTHING`, las tareas solo se
+  insertan si el usuario aún no tiene ninguna y las asignaciones de categorías usan
+  `ON CONFLICT DO NOTHING`.
+- La migración `004_create_categories.sql` añade `categories` y `task_categories`; las bases
+  existentes solo necesitan `npm run db:migrate`.
+- Para evolucionar el esquema se añade un archivo nuevo (`005_...sql`), nunca se edita uno aplicado.
 
 ---
 
@@ -426,10 +475,11 @@ Base: `http://localhost:3000/api`
 | `POST` | `/auth/refresh` | Cookie | Renueva el access token y rota el refresh. |
 | `POST` | `/auth/logout` | Cookie | Revoca la sesión y borra la cookie. |
 | `GET` | `/auth/me` | Bearer | Devuelve el usuario autenticado. |
-| `GET` | `/tasks` | Bearer | Lista las tareas del usuario. Filtros: `status`, `priority`, `search`. |
-| `POST` | `/tasks` | Bearer | Crea una tarea. |
+| `GET` | `/categories` | Bearer | Catálogo global de categorías. |
+| `GET` | `/tasks` | Bearer | Lista las tareas del usuario. Filtros: `status`, `priority`, `categoryIds`, `search`. |
+| `POST` | `/tasks` | Bearer | Crea una tarea con categorías opcionales. |
 | `GET` | `/tasks/:id` | Bearer | Obtiene una tarea propia. |
-| `PATCH` | `/tasks/:id` | Bearer | Actualización parcial. |
+| `PATCH` | `/tasks/:id` | Bearer | Actualización parcial; `categoryIds` reemplaza las categorías. |
 | `DELETE` | `/tasks/:id` | Bearer | Elimina una tarea propia (204). |
 
 ### Registro
@@ -472,6 +522,25 @@ curl -X POST http://localhost:3000/api/auth/refresh -b cookies.txt -c cookies.tx
 curl -X POST http://localhost:3000/api/auth/logout  -b cookies.txt -c cookies.txt
 ```
 
+### Categorías
+
+```http
+GET /api/categories
+Authorization: Bearer <accessToken>
+```
+
+```json
+{
+  "data": [
+    { "id": 1, "name": "Trabajo", "slug": "trabajo", "color": "#2563eb" },
+    { "id": 2, "name": "Personal", "slug": "personal", "color": "#16a34a" }
+  ]
+}
+```
+
+El catálogo es global y requiere sesión. Se usa para el selector del formulario y para las opciones
+de categoría del desplegable de filtros.
+
 ### Tareas
 
 ```http
@@ -484,31 +553,53 @@ Content-Type: application/json
   "description": "Revisar variables y migraciones",
   "status": "pending",
   "priority": "high",
-  "parentTaskId": null
+  "parentTaskId": null,
+  "categoryIds": [1, 3]
 }
 ```
 
 - `status`: `pending` | `in_progress` | `done` (default `pending`).
 - `priority`: `low` | `medium` | `high` | `urgent` (default `medium`).
 - `parentTaskId`: id numérico de una tarea propia o `null` (subtareas).
+- `categoryIds`: array de ids existentes (máximo 20, sin duplicados). En `PATCH` reemplaza por
+  completo las categorías; `[]` las vacía. Cada tarea devuelve `categories: [{ id, name, slug,
+  color }]`.
 - `id` de tarea es **numérico** (`BIGSERIAL`).
 
 ```powershell
-# Listar altas pendientes que contengan "despliegue"
-curl "http://localhost:3000/api/tasks?status=pending&priority=high&search=despliegue" `
+# Listar tareas pendientes de Trabajo o Estudio que contengan "despliegue"
+curl "http://localhost:3000/api/tasks?status=pending&categoryIds=1,3&search=despliegue" `
   -H "Authorization: Bearer <token>"
 
 # Marcar como completada
 curl -X PATCH http://localhost:3000/api/tasks/12 `
   -H "Authorization: Bearer <token>" -H "Content-Type: application/json" `
   -d '{"status":"done"}'
+
+# Vaciar las categorías
+curl -X PATCH http://localhost:3000/api/tasks/12 `
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" `
+  -d '{"categoryIds":[]}'
 ```
+
+#### Filtros multi-valor
+
+- `status` y `priority` aceptan un valor, una lista separada por comas (`status=done,pending`) o
+  parámetros repetidos (`status=done&status=pending`). Dentro del mismo filtro se combina con
+  **OR**.
+- `categoryIds` acepta ids separados por comas o repetidos; una tarea coincide si tiene **alguna**
+  de las categorías indicadas.
+- Filtros de tipos distintos se combinan con **AND**. `search` sigue siendo un texto libre.
+- Los valores inválidos (estado/prioridad desconocidos o ids no numéricos) devuelven **400**.
+
+La interfaz aplica estos mismos criterios en el cliente sobre las tareas ya cargadas, por lo que
+los chips responden al instante; la API mantiene los filtros para integraciones externas.
 
 ### Errores
 
 | Código | Cuándo |
 | ------ | ------ |
-| 400 | Body inválido, JSON malformado, id/prioridad/estado/fecha no válidos. |
+| 400 | Body inválido, JSON malformado, id/prioridad/estado no válidos o categoría inexistente. |
 | 401 | Sin token, token expirado/inválido, credenciales incorrectas, sesión revocada. |
 | 404 | Tarea ajena/inexistente o ruta desconocida. |
 | 409 | Email ya registrado u otra violación de unicidad. |
@@ -534,17 +625,21 @@ frontend/
     ├── api/
     │   ├── client.js              fetch, access token, refresh single-flight, 401
     │   ├── auth.api.js            register, login, refresh, logout, me
+    │   ├── categories.api.js      Catálogo de categorías
     │   └── tasks.api.js           CRUD de tareas
     ├── context/
     │   └── AuthContext.jsx        Estado de sesión, login/register/logout
     ├── components/
+    │   ├── ActiveFilters.jsx      Chips de filtros activos y «Limpiar todo»
     │   ├── Alert.jsx              Mensajes de error accesibles
-    │   ├── TaskForm.jsx           Alta con estado y prioridad
+    │   ├── FilterDropdown.jsx     Desplegable de filtros inactivos
+    │   ├── TaskForm.jsx           Alta con estado, prioridad y categorías
     │   ├── TaskItem.jsx           Badges, cambio de estado y borrado
     │   └── TaskList.jsx           Lista, carga y vacío
     ├── constants/
     │   └── tasks.js               Estados y prioridades + etiquetas
     ├── hooks/
+    │   ├── useCategories.js       Carga única del catálogo
     │   └── useTasks.js            Estado y CRUD de tareas
     └── pages/
         ├── LoginPage.jsx          Login/registro en una pantalla
@@ -559,16 +654,34 @@ frontend/
 | `src/api/client.js` | Construye peticiones con `credentials: 'include'`; guarda el access token en memoria; ante 401 hace un refresh (single-flight) y reintenta; notifica a `AuthContext` si la sesión murió. |
 | `src/api/auth.api.js` | Llama a los endpoints de auth, guarda/limpia el token y expone `refresh`/`me`. |
 | `src/api/tasks.api.js` | Lista/crea/actualiza/borra tareas; desempaqueta `{ data }`. |
+| `src/api/categories.api.js` | `GET /categories`; desempaqueta `{ data }`. |
 | `src/context/AuthContext.jsx` | Recupera la sesión al cargar con `/auth/refresh`, mantiene `user`, `initializing` y acciones `login`/`register`/`logout`. |
 | `src/pages/LoginPage.jsx` | Pestañas login/registro, validación local, errores de API, estado de envío y credenciales demo. |
-| `src/pages/TasksPage.jsx` | Hook de tareas, contadores, búsqueda, filtros por estado/prioridad y composición de la UI. |
+| `src/pages/TasksPage.jsx` | Hook de tareas, contadores, búsqueda, grupos de filtros, chips activos y filtrado combinado en cliente. |
 | `src/hooks/useTasks.js` | Carga inicial y operaciones CRUD con `saving`/`error`; sincroniza la lista con la respuesta del servidor. |
-| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado y prioridad. |
-| `src/components/TaskItem.jsx` | Badge de estado, prioridad, subtarea; selector de estado y borrado con confirmación. |
+| `src/hooks/useCategories.js` | Carga el catálogo una vez al montar y expone `categories`/`loading`/`error`. |
+| `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría); solo muestra opciones inactivas, cierra con clic fuera/Escape y permanece abierto al elegir. |
+| `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y reaparecen en el desplegable. |
+| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado, prioridad y selección múltiple de categorías en chips. |
+| `src/components/TaskItem.jsx` | Badges de estado, prioridad, categoría y subtarea; selector de estado y borrado con confirmación. |
 | `src/components/TaskList.jsx` | Renderiza la lista o los estados de carga/vacío. |
 | `src/components/Alert.jsx` | Mensaje `role="alert"` con reintentar/cerrar. |
 | `src/constants/tasks.js` | Enums y etiquetas en español. |
 | `src/index.css` | Tokens de diseño, layout, formularios, tarjetas, login, badges y responsive. |
+
+### Filtros en la interfaz
+
+- El botón **Filtros** abre un desplegable con todos los valores filtrables del catálogo y los
+  enums: estado, prioridad y categorías (estas últimas llegan de `GET /api/categories`).
+- Al hacer clic en una opción se añade un **chip activo** junto a la búsqueda; la opción desaparece
+  del desplegable (que permanece abierto para añadir más) y el contador del botón se incrementa.
+- Al pulsar un chip activo se retira el filtro y la opción vuelve al desplegable. «Limpiar todo»
+  retira todos los chips a la vez.
+- Dentro del mismo tipo los valores se combinan con **OR** (p. ej. `pending` o `in_progress`);
+  entre tipos distintos, con **AND** (estado + prioridad + categoría). La búsqueda por texto se
+  aplica además como AND.
+- El filtrado se hace en el cliente sobre las tareas ya cargadas, por lo que no hay peticiones
+  adicionales al cambiar de filtro.
 
 ### Gestión de la sesión en el cliente
 
@@ -624,9 +737,21 @@ React Router sería el siguiente paso.
 ### Crear una tarea
 
 1. `TaskForm` → `useTasks.createTask` → `tasksApi.create`.
-2. `POST /api/tasks` con Bearer.
-3. `requireAuth` → controlador → validador → servicio (valida padre) → repositorio (`INSERT`).
-4. PostgreSQL valida CHECK/FK y devuelve la fila; el hook la añade al estado.
+2. `POST /api/tasks` con Bearer y `categoryIds`.
+3. `requireAuth` → controlador → validador → servicio (valida padre y categorías existentes) →
+   repositorio.
+4. El repositorio abre una transacción, inserta la tarea, inserta las filas de `task_categories` y
+   devuelve la tarea con `categories` agregadas; el hook la añade al estado.
+
+### Añadir y quitar filtros
+
+1. `useCategories` carga una vez el catálogo y `TasksPage` construye los grupos (estado, prioridad,
+   categoría).
+2. Al elegir una opción, `TasksPage` la guarda en `activeFilters` y `FilterDropdown` deja de
+   mostrarla (sigue abierto).
+3. `ActiveFilters` pinta un chip por filtro; al pulsarlo se elimina del estado y la opción vuelve al
+   desplegable.
+4. `visibleTasks` recalcula en memoria: OR dentro de cada tipo y AND entre tipos, más la búsqueda.
 
 ---
 
@@ -639,7 +764,7 @@ React Router sería el siguiente paso.
 | `npm run dev` | Servidor con recarga (`node --watch`). |
 | `npm start` | Servidor sin recarga. |
 | `npm run db:migrate` | Aplica migraciones pendientes. |
-| `npm run db:seed` | Carga usuario demo y tareas. |
+| `npm run db:seed` | Carga usuario demo, tareas y categorías. |
 
 ### Frontend
 
@@ -664,6 +789,12 @@ React Router sería el siguiente paso.
 - **Cookie httpOnly + SameSite** y access token en memoria.
 - **Rate limiting** en auth (20 intentos / 15 min / IP).
 - **Errores centralizados** y envelope `{ data }` / `{ error }`.
+- **Catálogo global de categorías**: compartido por todos los usuarios; cada uno decide qué
+  asignar a sus tareas.
+- **N:M con tabla puente** `task_categories` y PK compuesta; integridad garantizada por FKs.
+- **Filtros multi-valor**: OR dentro del mismo tipo, AND entre tipos; búsqueda de texto aparte.
+- **Filtrado en cliente** sobre las tareas cargadas para que los chips sean instantáneos; la API
+  expone los mismos filtros para otros clientes.
 - **Migraciones inmutables**: cambios nuevos se añaden con otro archivo.
 - **Sin ORM, sin TypeScript y sin framework de UI** por decisión del proyecto.
 
@@ -673,7 +804,7 @@ React Router sería el siguiente paso.
 
 ### Añadir un recurso nuevo (ej. `projects`)
 
-1. Migración `004_create_projects.sql` con `user_id` y FK.
+1. Migración `005_create_projects.sql` con `user_id` y FK.
 2. `repositories/projects.repository.js`, `services/projects.service.js`,
    `validators/projects.validator.js`, `controllers/projects.controller.js`,
    `routes/projects.routes.js`.
@@ -702,39 +833,49 @@ React Router sería el siguiente paso.
 
 ## 16. Verificación realizada
 
-Con un **clúster PostgreSQL temporal** (puerto 55432, ya eliminado) y el servidor en el puerto 3010:
+Con un **clúster PostgreSQL temporal** (puerto 55434, ya eliminado) y el servidor en el puerto 3011:
 
 | Prueba | Resultado |
 | ------ | --------- |
-| Migraciones `001`, `002`, `003` | OK |
-| Seed: usuario demo + 3 tareas | OK |
-| `GET /api/tasks` sin token | 401 |
-| Registro de usuario nuevo | 201, cookie httpOnly y access token |
-| Registro con email duplicado | 409 |
-| Registro con email/contraseña inválidos | 400 con `details` |
-| Login demo correcto | 200, 3 tareas |
-| Login con contraseña incorrecta | 401 genérico |
-| `GET /api/auth/me` | 200 con el usuario |
-| Crear tarea con `priority=urgent` | 201 |
-| `PATCH` estado y prioridad | 200 y `updated_at` actualizado |
-| Acceso de Ana a una tarea del demo | 404 |
-| Refresh con cookie válida | 200 y token rotado |
-| Reutilizar un refresh token revocado | 401 + revocación de todas las sesiones |
-| Logout | 204 |
-| Refresh después del logout | 401 |
-| Login/refresh/logout a través del proxy de Vite | OK |
-| `npm run build` del frontend | OK (41 módulos) |
-| Sintaxis de todos los archivos del backend (`node --check`) | OK |
+| Migraciones `001`–`004` sobre base limpia | OK |
+| Seed: usuario demo + 3 tareas + 4 categorías + 4 asignaciones | OK |
+| `GET /api/categories` autenticado | 200, 4 categorías con id/name/slug/color |
+| `GET /api/categories` sin token | 401 |
+| `GET /api/tasks` incluye `categories[]` por tarea | OK |
+| Tarea JWT con 2 categorías (Trabajo + Urgente) | OK |
+| Crear tarea con `categoryIds` | 201 y 2 categorías ordenadas |
+| `PATCH` con `categoryIds` | reemplaza por completo |
+| `PATCH` con `categoryIds: []` | vacía las categorías |
+| `PATCH` solo con `categoryIds` | 200 sin tocar el resto de campos |
+| Categoría inexistente al crear/actualizar | 400 |
+| `categoryIds` con formato inválido | 400 |
+| `PATCH` sin campos | 400 |
+| Filtro `status`, repetido y separado por comas | OR correcto |
+| Filtro `priority` | OK |
+| Filtro `categoryIds` y dos categorías | OR correcto |
+| `status` + `categoryIds` | AND correcto |
+| Filtro `search` | OK |
+| Filtros inválidos (`status`, `categoryIds`) | 400 |
+| Segundo usuario: lista vacía y catálogo visible | OK |
+| Segundo usuario: leer/modificar/borrar tarea ajena | 404 |
+| Borrar tarea propia | 204 y deja de existir |
+| `docs/Database.sql` ejecutado dos veces | OK; 5 tablas y 16 índices |
+| Seed sobre el esquema de `Database.sql` | OK (3 tareas, 4 categorías, 4 asignaciones) |
+| `npm run build` del frontend | OK (45 módulos) |
+| Sintaxis de todos los archivos del backend (`node --check`, 29 archivos) | OK |
+
+Suite funcional: **44 comprobaciones, 0 fallos**.
 
 ---
 
 ## 17. Próximos pasos sugeridos
 
-- Tests automatizados de auth y aislamiento entre usuarios.
+- Tests automatizados de auth, categorías y aislamiento entre usuarios.
 - Verificación de email y recuperación de contraseña.
 - Refresh por dispositivo con listado/revocación selectiva.
 - React Router y rutas protegidas declarativas.
-- Paginación de tareas y filtros combinados en servidor.
+- Paginación de tareas; mover el filtrado a servidor si el volumen crece.
+- CRUD de categorías para administradores (hoy el catálogo se carga por seed/SQL).
 - Docker Compose (PostgreSQL + API + frontend) y CI.
 - OpenAPI/Swagger y logs estructurados.
 - En producción: HTTPS, `COOKIE_SAMESITE=none` si hay dominios distintos, proxy inverso y

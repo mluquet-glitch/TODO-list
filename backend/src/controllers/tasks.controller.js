@@ -15,6 +15,7 @@ export const tasksController = {
     const tasks = await tasksService.list(req.user.id, {
       status: req.query.status,
       priority: req.query.priority,
+      categoryIds: req.query.categoryIds,
       search: req.query.search,
     });
     res.json({ data: tasks });

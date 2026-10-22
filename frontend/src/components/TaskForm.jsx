@@ -6,13 +6,14 @@ const INITIAL_FORM = {
   description: '',
   status: 'pending',
   priority: 'medium',
+  categoryIds: [],
 };
 
 /**
- * Formulario de alta de tareas.
+ * Formulario de alta de tareas, con selección múltiple de categorías.
  * `onCreate` devuelve true/false para saber si limpiar el formulario.
  */
-export default function TaskForm({ onCreate, saving }) {
+export default function TaskForm({ categories = [], onCreate, saving }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [localError, setLocalError] = useState('');
 
@@ -20,6 +21,15 @@ export default function TaskForm({ onCreate, saving }) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
     if (localError) setLocalError('');
+  }
+
+  function toggleCategory(categoryId) {
+    setForm((current) => ({
+      ...current,
+      categoryIds: current.categoryIds.includes(categoryId)
+        ? current.categoryIds.filter((id) => id !== categoryId)
+        : [...current.categoryIds, categoryId],
+    }));
   }
 
   async function handleSubmit(event) {
@@ -36,6 +46,7 @@ export default function TaskForm({ onCreate, saving }) {
       description: form.description.trim() || null,
       status: form.status,
       priority: form.priority,
+      categoryIds: form.categoryIds,
     });
 
     if (created) setForm(INITIAL_FORM);
@@ -106,6 +117,38 @@ export default function TaskForm({ onCreate, saving }) {
             ))}
           </select>
         </div>
+      </div>
+
+      <div className="field">
+        <span className="field__label">Categorías</span>
+        {categories.length === 0 ? (
+          <p className="muted">No hay categorías disponibles.</p>
+        ) : (
+          <div className="checkbox-group">
+            {categories.map((category) => {
+              const checked = form.categoryIds.includes(category.id);
+
+              return (
+                <label
+                  key={category.id}
+                  className={`checkbox-chip ${checked ? 'checkbox-chip--active' : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleCategory(category.id)}
+                  />
+                  <span
+                    className="checkbox-chip__dot"
+                    style={{ backgroundColor: category.color }}
+                    aria-hidden="true"
+                  />
+                  {category.name}
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <button type="submit" className="button button--primary" disabled={saving}>

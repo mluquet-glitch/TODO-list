@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react';
+import ActiveFilters from '../components/ActiveFilters.jsx';
 import Alert from '../components/Alert.jsx';
+import FilterDropdown from '../components/FilterDropdown.jsx';
 import TaskForm from '../components/TaskForm.jsx';
 import TaskList from '../components/TaskList.jsx';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
+import { useCategories } from '../hooks/useCategories.js';
 import { useTasks } from '../hooks/useTasks.js';
 
-/** Página principal: formulario, filtros y listado de tareas del usuario. */
+/** Página principal: formulario, filtros dinámicos y listado de tareas. */
 export default function TasksPage() {
   const {
     tasks,
@@ -19,9 +22,57 @@ export default function TasksPage() {
     clearError,
   } = useTasks();
 
+  const { categories, error: categoriesError } = useCategories();
+
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [activeFilters, setActiveFilters] = useState([]);
+
+  // Opciones del desplegable: todos los valores filtrables de la base de datos.
+  const filterGroups = useMemo(
+    () => [
+      {
+        type: 'status',
+        label: 'Estado',
+        options: TASK_STATUSES.map(({ value, label }) => ({ value, label })),
+      },
+      {
+        type: 'priority',
+        label: 'Prioridad',
+        options: TASK_PRIORITIES.map(({ value, label }) => ({ value, label })),
+      },
+      {
+        type: 'category',
+        label: 'Categoría',
+        options: categories.map((category) => ({
+          value: category.id,
+          label: category.name,
+          color: category.color,
+        })),
+      },
+    ],
+    [categories],
+  );
+
+  const activeKeys = useMemo(
+    () => new Set(activeFilters.map((filter) => `${filter.type}:${filter.value}`)),
+    [activeFilters],
+  );
+
+  const selected = useMemo(
+    () =>
+      activeFilters.reduce(
+        (acc, filter) => {
+          acc[filter.type].add(filter.value);
+          return acc;
+        },
+        {
+          status: new Set(),
+          priority: new Set(),
+          category: new Set(),
+        },
+      ),
+    [activeFilters],
+  );
 
   const counts = useMemo(() => {
     return tasks.reduce(
@@ -38,22 +89,45 @@ export default function TasksPage() {
     const term = search.trim().toLowerCase();
 
     return tasks.filter((task) => {
-      const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+      const matchesStatus =
+        selected.status.size === 0 || selected.status.has(task.status);
       const matchesPriority =
-        priorityFilter === 'all' || task.priority === priorityFilter;
+        selected.priority.size === 0 || selected.priority.has(task.priority);
+      const matchesCategory =
+        selected.category.size === 0 ||
+        (task.categories ?? []).some((category) =>
+          selected.category.has(category.id),
+        );
       const matchesSearch =
         !term ||
         task.title.toLowerCase().includes(term) ||
         (task.description ?? '').toLowerCase().includes(term);
 
-      return matchesStatus && matchesPriority && matchesSearch;
+      return matchesStatus && matchesPriority && matchesCategory && matchesSearch;
     });
-  }, [tasks, search, statusFilter, priorityFilter]);
+  }, [tasks, search, selected]);
+
+  function addFilter(filter) {
+    setActiveFilters((current) => {
+      const exists = current.some(
+        (item) => item.type === filter.type && item.value === filter.value,
+      );
+      return exists ? current : [...current, filter];
+    });
+  }
+
+  function removeFilter(filter) {
+    setActiveFilters((current) =>
+      current.filter(
+        (item) => !(item.type === filter.type && item.value === filter.value),
+      ),
+    );
+  }
 
   return (
     <div className="tasks-page">
       <section className="tasks-page__sidebar">
-        <TaskForm onCreate={createTask} saving={saving} />
+        <TaskForm categories={categories} onCreate={createTask} saving={saving} />
 
         <div className="card stats">
           <h2 className="card__title">Resumen</h2>
@@ -87,44 +161,22 @@ export default function TasksPage() {
             />
           </div>
 
-          <div className="field field--compact">
-            <label className="visually-hidden" htmlFor="priority-filter">
-              Filtrar por prioridad
-            </label>
-            <select
-              id="priority-filter"
-              value={priorityFilter}
-              onChange={(event) => setPriorityFilter(event.target.value)}
-            >
-              <option value="all">Todas las prioridades</option>
-              {TASK_PRIORITIES.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  Prioridad {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filters" role="group" aria-label="Filtrar por estado">
-            <button
-              type="button"
-              className={`chip ${statusFilter === 'all' ? 'chip--active' : ''}`}
-              onClick={() => setStatusFilter('all')}
-            >
-              Todas ({counts.all})
-            </button>
-            {TASK_STATUSES.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                className={`chip ${statusFilter === value ? 'chip--active' : ''}`}
-                onClick={() => setStatusFilter(value)}
-              >
-                {label} ({counts[value] ?? 0})
-              </button>
-            ))}
-          </div>
+          <FilterDropdown
+            groups={filterGroups}
+            activeKeys={activeKeys}
+            onSelect={addFilter}
+          />
         </div>
+
+        <ActiveFilters
+          filters={activeFilters}
+          onRemove={removeFilter}
+          onClear={() => setActiveFilters([])}
+        />
+
+        {categoriesError && (
+          <p className="muted">No se pudieron cargar las categorías: {categoriesError}</p>
+        )}
 
         <Alert type="error" message={error} onRetry={refresh} onClose={clearError} />
 
