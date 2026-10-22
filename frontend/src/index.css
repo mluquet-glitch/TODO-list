@@ -655,6 +655,24 @@ textarea {
   white-space: nowrap;
 }
 
+.task__subtask-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.task__subtask-row .task__subtask {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.task__subtask-select {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.74rem;
+}
+
 .task__subtasks-empty {
   margin: 0;
   color: #94a3b8;
@@ -1419,6 +1437,14 @@ label.checkbox-chip--active {
   .task__actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .task__subtask-row {
+    flex-wrap: wrap;
+  }
+
+  .task__subtask-select {
+    margin-left: auto;
   }
 
   .app__user {

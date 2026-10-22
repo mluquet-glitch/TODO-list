@@ -129,7 +129,7 @@ export default function TaskItem({
           ) : (
             <ul className="task__subtasks-list">
               {subtasks.map((subtask) => (
-                <li key={subtask.id}>
+                <li key={subtask.id} className="task__subtask-row">
                   <button
                     type="button"
                     className="task__subtask"
@@ -143,6 +143,28 @@ export default function TaskItem({
                       </span>
                     )}
                   </button>
+
+                  <label
+                    className="visually-hidden"
+                    htmlFor={`subtask-status-${subtask.id}`}
+                  >
+                    Cambiar estado de {subtask.title}
+                  </label>
+                  <select
+                    id={`subtask-status-${subtask.id}`}
+                    className="task__select task__subtask-select"
+                    value={subtask.status}
+                    disabled={busy}
+                    onChange={(event) =>
+                      onChange(subtask.id, { status: event.target.value })
+                    }
+                  >
+                    {TASK_STATUSES.map(({ value, label }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
                 </li>
               ))}
             </ul>

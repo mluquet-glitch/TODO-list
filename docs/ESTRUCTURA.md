@@ -72,7 +72,8 @@ Características principales:
   fecha.
 - **Tarjetas expandibles**: cada tarjeta muestra una línea de la descripción y un toggle que
   despliega sus subtareas, también con título y descripción recortada, en tonos apagados y
-  clicables para abrir su detalle.
+  clicables para abrir su detalle. Cada subtarea incluye un selector de estado que guarda el cambio
+  automáticamente en la base de datos.
 - Logout real: revoca el refresh token en la base de datos y limpia la cookie.
 - Rate limiting en login/registro para frenar fuerza bruta.
 
@@ -731,7 +732,7 @@ frontend/
 | `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, fecha límite, estado, prioridad y categorías. Acepta `parentTaskId`, `initialCategoryIds`, `heading` y `submitLabel`; al crear subtareas precarga las categorías del padre. |
 | `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, fecha límite, estado, prioridad, categorías, guardado y borrado. |
 | `src/components/TaskHierarchyIndex.jsx` | Índice lateral fijo con la tarea padre (la propia si es raíz) y todas sus hijas directas; incluye un botón para volver a la pantalla principal, la tarea abierta se marca en rojo, cada entrada permite navegar y el panel se abre/cierra sin perder la posición al hacer scroll. |
-| `src/components/TaskItem.jsx` | Título-botón, vista previa de descripción en una línea, fecha límite (en rojo si está vencida), badges, toggle de subtareas clicables y acciones de estado/borrado. |
+| `src/components/TaskItem.jsx` | Título-botón, vista previa de descripción en una línea, fecha límite (en rojo si está vencida), badges, toggle de subtareas clicables con selector de estado persistente y acciones de estado/borrado. |
 | `src/components/TaskList.jsx` | Agrupa las hijas por `parentTaskId` y renderiza la lista o los estados de carga/vacío; reenvía la apertura del detalle. |
 | `src/components/Alert.jsx` | Mensaje `role="alert"` con reintentar/cerrar. |
 | `src/constants/tasks.js` | Enums y etiquetas en español. |
@@ -1021,6 +1022,7 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | Índice de jerarquía fijo a la derecha | posición fija comprobada tras hacer scroll; abre/cierra con botón, `Escape` y clic fuera |
 | Botón «Volver a la pantalla principal» del índice | cierra el detalle y restaura el listado principal |
 | Formulario de subtarea con padre categorizado | abre con las categorías del padre marcadas y las conserva tras crear |
+| Selector de estado en la lista desplegada de subtareas | actualiza la interfaz y persiste el nuevo estado vía `PATCH /api/tasks/:id` |
 | Índice en móvil (390 px) | panel dentro del viewport; disparador en la esquina inferior derecha |
 | Tarea completada con fecha pasada | no se marca como vencida |
 | Filtros `Vencidas`, `Para hoy`, `Próximos 7 días` y `Sin fecha` | resultados correctos |
