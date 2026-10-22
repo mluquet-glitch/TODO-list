@@ -676,6 +676,7 @@ frontend/
     │   ├── FilterDropdown.jsx     Desplegable de filtros inactivos
     │   ├── TaskDetail.jsx         Edición de la tarea abierta y sus categorías
     │   ├── TaskForm.jsx           Alta de tareas y subtareas (parentTaskId)
+    │   ├── TaskHierarchyIndex.jsx Índice padre/hijas con la tarea actual en rojo
     │   ├── TaskItem.jsx           Título-botón, badges, estado y borrado
     │   └── TaskList.jsx           Lista, carga y vacío
     ├── constants/
@@ -707,6 +708,7 @@ frontend/
 | `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y reaparecen en el desplegable. |
 | `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado, prioridad y categorías. Acepta `parentTaskId`, `heading` y `submitLabel` para crear subtareas. |
 | `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, estado, prioridad, categorías, guardado y borrado. |
+| `src/components/TaskHierarchyIndex.jsx` | Índice superior con la tarea padre (la propia si es raíz) y todas sus hijas directas; la tarea abierta se marca en rojo y cada entrada permite navegar. |
 | `src/components/TaskItem.jsx` | Título como botón accesible que abre el detalle; badges de estado, prioridad, categoría y subtarea; selector de estado y borrado. |
 | `src/components/TaskList.jsx` | Renderiza la lista o los estados de carga/vacío; reenvía la apertura del detalle. |
 | `src/components/Alert.jsx` | Mensaje `role="alert"` con reintentar/cerrar. |
@@ -731,10 +733,12 @@ frontend/
 
 - En el listado, el título de cada tarea es un `<button>`; al pulsarlo `TasksPage` guarda su id y
   sustituye la vista principal por la pantalla de detalle.
-- La pantalla de detalle muestra arriba la tarjeta **Editar tarea** (datos y categorías), fuera de
-  cualquier listado. Debajo aparece el mismo `TaskForm` de alta, configurado con
-  `parentTaskId`, `heading` y `submitLabel`, por lo que lo que se cree ahí queda enlazado como
-  subtarea.
+- Arriba del todo hay un **índice de jerarquía**: muestra la tarea padre (o la propia tarea si es
+  raíz) y todas sus hijas directas. Cada entrada es un botón para navegar y la tarea abierta se
+  resalta en rojo.
+- Después aparece la tarjeta **Editar tarea** (datos y categorías), fuera de cualquier listado.
+  Debajo aparece el mismo `TaskForm` de alta, configurado con `parentTaskId`, `heading` y
+  `submitLabel`, por lo que lo que se cree ahí queda enlazado como subtarea.
 - Más abajo se listan solo las hijas directas de la tarea abierta; sus títulos también abren su
   propio detalle. El botón de volver regresa al padre si existe o al listado principal.
 - La pantalla principal calcula `rootTasks = tasks.filter(parentTaskId === null)`; los contadores,
@@ -976,7 +980,7 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | `UPDATE tasks SET parent_task_id = id` directo en PostgreSQL | bloqueado por `chk_tasks_parent_not_self` |
 | `docs/Database.sql` ejecutado dos veces | OK; 5 tablas y 16 índices |
 | Seed sobre el esquema de `Database.sql` | OK (3 tareas, 4 categorías, 4 asignaciones) |
-| `npm run build` del frontend | OK (47 módulos) |
+| `npm run build` del frontend | OK (48 módulos) |
 | Sintaxis de todos los archivos del backend (`node --check`, 30 archivos) | OK |
 
 Suite funcional: **44 comprobaciones de tareas/categorías + 34 de CRUD de categorías + 26 de

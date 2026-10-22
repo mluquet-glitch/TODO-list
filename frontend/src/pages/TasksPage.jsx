@@ -5,6 +5,7 @@ import CategoryManager from '../components/CategoryManager.jsx';
 import FilterDropdown from '../components/FilterDropdown.jsx';
 import TaskDetail from '../components/TaskDetail.jsx';
 import TaskForm from '../components/TaskForm.jsx';
+import TaskHierarchyIndex from '../components/TaskHierarchyIndex.jsx';
 import TaskList from '../components/TaskList.jsx';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
 import { useCategories } from '../hooks/useCategories.js';
@@ -210,6 +211,12 @@ export default function TasksPage() {
 
     return (
       <div className="task-detail-page">
+        <TaskHierarchyIndex
+          task={selectedTask}
+          tasks={tasks}
+          onSelect={setSelectedTaskId}
+        />
+
         <div className="task-detail-page__topbar">
           <button
             type="button"
