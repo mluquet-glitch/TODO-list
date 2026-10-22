@@ -1,4 +1,4 @@
-/** Cliente HTTP mínimo sobre fetch, con manejo uniforme de errores de la API. */
+/** Cliente HTTP sobre fetch: access token en memoria, cookie de refresco y errores uniformes. */
 
 const BASE_URL = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/$/, '');
 
@@ -12,26 +12,46 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * @param {string} path ruta relativa, ej. '/tasks'
- * @param {{ method?: string, body?: unknown, signal?: AbortSignal }} options
- */
-async function request(path, { method = 'GET', body, signal } = {}) {
-  let response;
+// El access token vive solo en memoria (no en localStorage): si se recarga la
+// página se recupera con el refresh token de la cookie httpOnly.
+let accessToken = null;
+let refreshPromise = null;
+let authFailureHandler = null;
 
-  try {
-    response = await fetch(`${BASE_URL}${path}`, {
-      method,
-      signal,
-      headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-  } catch (error) {
-    if (error.name === 'AbortError') throw error;
-    throw new ApiError('No se pudo conectar con el servidor. ¿Está el backend en marcha?');
-  }
+export function setAccessToken(token) {
+  accessToken = token;
+}
 
-  // 204 No Content (DELETE) no tiene body.
+export function clearAccessToken() {
+  accessToken = null;
+}
+
+/** Registra qué hacer cuando una petición queda sin sesión (la usa AuthContext). */
+export function onAuthFailure(handler) {
+  authFailureHandler = handler;
+  return () => {
+    if (authFailureHandler === handler) authFailureHandler = null;
+  };
+}
+
+function buildHeaders(body) {
+  const headers = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  return headers;
+}
+
+async function rawFetch(path, { method = 'GET', body } = {}) {
+  return fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: buildHeaders(body),
+    credentials: 'include',
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
+async function parseResponse(response) {
+  // 204 No Content (DELETE/logout) no tiene body.
   if (response.status === 204) return null;
 
   const payload = await response.json().catch(() => null);
@@ -42,6 +62,65 @@ async function request(path, { method = 'GET', body, signal } = {}) {
   }
 
   return payload;
+}
+
+/**
+ * Pide un nuevo access token usando la cookie de refresco.
+ * Single-flight: si varias peticiones reciben 401 a la vez, solo se hace un refresh.
+ * Devuelve `{ user, accessToken }` o null si no hay sesión válida.
+ */
+export async function refreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          accessToken = null;
+          return null;
+        }
+
+        const payload = await response.json();
+        accessToken = payload?.data?.accessToken ?? null;
+        return payload?.data ?? null;
+      } catch {
+        accessToken = null;
+        return null;
+      }
+    })();
+  }
+
+  try {
+    return await refreshPromise;
+  } finally {
+    refreshPromise = null;
+  }
+}
+
+/**
+ * @param {string} path ruta relativa, ej. '/tasks'
+ * @param {{ method?: string, body?: unknown, retry?: boolean }} options
+ */
+async function request(path, { method = 'GET', body, retry = true } = {}) {
+  let response;
+
+  try {
+    response = await rawFetch(path, { method, body });
+  } catch {
+    throw new ApiError('No se pudo conectar con el servidor. ¿Está el backend en marcha?');
+  }
+
+  // Access token caducado: se renueva una vez y se repite la petición.
+  if (response.status === 401 && retry && !path.startsWith('/auth/')) {
+    const session = await refreshSession();
+    if (session) return request(path, { method, body, retry: false });
+    authFailureHandler?.();
+  }
+
+  return parseResponse(response);
 }
 
 export const api = {

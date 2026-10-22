@@ -16,6 +16,14 @@ export class ApiError extends Error {
     return new ApiError(400, message, details);
   }
 
+  static unauthorized(message = 'No autenticado') {
+    return new ApiError(401, message);
+  }
+
+  static forbidden(message = 'No tienes permisos para esta acción') {
+    return new ApiError(403, message);
+  }
+
   static notFound(message = 'Recurso no encontrado') {
     return new ApiError(404, message);
   }

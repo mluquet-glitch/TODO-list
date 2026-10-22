@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { TASK_STATUSES } from '../constants/tasks.js';
+import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
 
 const INITIAL_FORM = {
   title: '',
   description: '',
   status: 'pending',
-  dueDate: '',
+  priority: 'medium',
 };
 
 /**
@@ -35,7 +35,7 @@ export default function TaskForm({ onCreate, saving }) {
       title,
       description: form.description.trim() || null,
       status: form.status,
-      dueDate: form.dueDate || null,
+      priority: form.priority,
     });
 
     if (created) setForm(INITIAL_FORM);
@@ -53,7 +53,7 @@ export default function TaskForm({ onCreate, saving }) {
           type="text"
           value={form.title}
           onChange={handleChange}
-          maxLength={120}
+          maxLength={255}
           placeholder="¿Qué hay que hacer?"
           autoComplete="off"
           aria-invalid={Boolean(localError)}
@@ -69,7 +69,7 @@ export default function TaskForm({ onCreate, saving }) {
           rows={2}
           value={form.description}
           onChange={handleChange}
-          maxLength={1000}
+          maxLength={2000}
           placeholder="Detalles opcionales"
         />
       </div>
@@ -92,14 +92,19 @@ export default function TaskForm({ onCreate, saving }) {
         </div>
 
         <div className="field">
-          <label htmlFor="task-dueDate">Fecha límite</label>
-          <input
-            id="task-dueDate"
-            name="dueDate"
-            type="date"
-            value={form.dueDate}
+          <label htmlFor="task-priority">Prioridad</label>
+          <select
+            id="task-priority"
+            name="priority"
+            value={form.priority}
             onChange={handleChange}
-          />
+          >
+            {TASK_PRIORITIES.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
