@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import ActiveFilters from '../components/ActiveFilters.jsx';
 import Alert from '../components/Alert.jsx';
+import CategoryManager from '../components/CategoryManager.jsx';
 import FilterDropdown from '../components/FilterDropdown.jsx';
 import TaskForm from '../components/TaskForm.jsx';
 import TaskList from '../components/TaskList.jsx';
@@ -22,7 +23,15 @@ export default function TasksPage() {
     clearError,
   } = useTasks();
 
-  const { categories, error: categoriesError } = useCategories();
+  const {
+    categories,
+    saving: categorySaving,
+    error: categoriesError,
+    createCategory,
+    updateCategory,
+    removeCategory,
+    clearError: clearCategoriesError,
+  } = useCategories();
 
   const [search, setSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState([]);
@@ -124,10 +133,50 @@ export default function TasksPage() {
     );
   }
 
+  /** Mantiene sincronizados los chips activos cuando se renombra una categoría. */
+  async function handleUpdateCategory(id, changes) {
+    const updated = await updateCategory(id, changes);
+
+    if (updated) {
+      setActiveFilters((current) =>
+        current.map((filter) =>
+          filter.type === 'category' && filter.value === id
+            ? { ...filter, label: updated.name, color: updated.color }
+            : filter,
+        ),
+      );
+    }
+
+    return updated;
+  }
+
+  /** Al eliminar una categoría, retira también su chip de filtro activo. */
+  async function handleDeleteCategory(id) {
+    const deleted = await removeCategory(id);
+
+    if (deleted) {
+      setActiveFilters((current) =>
+        current.filter((filter) => !(filter.type === 'category' && filter.value === id)),
+      );
+    }
+
+    return deleted;
+  }
+
   return (
     <div className="tasks-page">
       <section className="tasks-page__sidebar">
         <TaskForm categories={categories} onCreate={createTask} saving={saving} />
+
+        <CategoryManager
+          categories={categories}
+          saving={categorySaving}
+          error={categoriesError}
+          onCreate={createCategory}
+          onUpdate={handleUpdateCategory}
+          onDelete={handleDeleteCategory}
+          onClearError={clearCategoriesError}
+        />
 
         <div className="card stats">
           <h2 className="card__title">Resumen</h2>
@@ -173,10 +222,6 @@ export default function TasksPage() {
           onRemove={removeFilter}
           onClear={() => setActiveFilters([])}
         />
-
-        {categoriesError && (
-          <p className="muted">No se pudieron cargar las categorías: {categoriesError}</p>
-        )}
 
         <Alert type="error" message={error} onRetry={refresh} onClose={clearError} />
 

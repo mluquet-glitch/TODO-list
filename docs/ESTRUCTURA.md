@@ -61,6 +61,8 @@ Características principales:
 - **Filtros dinámicos**: un desplegable reúne todos los filtros de la base de datos (estado,
   prioridad y categorías); al elegir uno se convierte en un chip activo y, al pulsarlo de nuevo,
   vuelve al desplegable.
+- **Gestión de categorías**: panel con un toggle de todas las categorías y un formulario para
+  agregar, actualizar y eliminar; Eliminar/Actualizar usan el toggle e Agregar usa el input.
 - Logout real: revoca el refresh token en la base de datos y limpia la cookie.
 - Rate limiting en login/registro para frenar fuerza bruta.
 
@@ -221,6 +223,7 @@ backend/
     │   └── tasks.controller.js      Capa HTTP de tareas
     ├── validators/
     │   ├── auth.validator.js        Email, contraseña y nombre
+    │   ├── categories.validator.js  Nombre, color e id de categoría
     │   └── tasks.validator.js       Ids, estados, prioridades, jerarquía y categoryIds
     ├── services/
     │   ├── auth.service.js          bcrypt, sesiones, rotación y reuse detection
@@ -254,21 +257,22 @@ backend/
 | `src/config/db.js` | Único `Pool` de conexiones; `query()` parametrizado, `getClient()` para transacciones, `checkDatabase()` y `closePool()`. |
 | `src/routes/index.js` | `GET /api/health`, `/api/auth` público y `/api/categories` + `/api/tasks` protegidos con `requireAuth`. |
 | `src/routes/auth.routes.js` | `POST /register`, `/login`, `/refresh`, `/logout` y `GET /me`. Aplica `authLimiter` a registro/login. |
-| `src/routes/categories.routes.js` | Declara `GET /api/categories`. |
+| `src/routes/categories.routes.js` | Declara `GET`, `POST`, `PATCH` y `DELETE` de `/api/categories`. |
 | `src/routes/tasks.routes.js` | Declara los endpoints CRUD de tareas. |
 | `src/middlewares/auth.js` | Exige `Authorization: Bearer`, verifica firma/expiración/emisor/audiencia y coloca `req.user` (`id`, `email`, `role`). |
 | `src/middlewares/rateLimit.js` | Máximo 20 intentos cada 15 minutos en login/registro por IP. |
 | `src/controllers/auth.controller.js` | Valida el body, llama al servicio, envía la cookie httpOnly y responde `{ data: { user, accessToken } }`. |
-| `src/controllers/categories.controller.js` | Devuelve el catálogo como `{ data: categories }`. |
+| `src/controllers/categories.controller.js` | Lista, crea, actualiza y elimina categorías; responde `{ data }` (201 al crear, 204 al borrar). |
 | `src/controllers/tasks.controller.js` | Lee params/query/body (incluido `categoryIds`), usa `req.user.id` y responde con `{ data }`. |
 | `src/validators/auth.validator.js` | Normaliza email (minúsculas, formato, ≤255), exige contraseña de 8–72 con letra y número, y nombre de 2–120. |
+| `src/validators/categories.validator.js` | `name` obligatorio al crear (1–80), color hexadecimal opcional y `id` entero positivo. |
 | `src/validators/tasks.validator.js` | Ids enteros positivos, `title` ≤255, `description` ≤2000, estados/prioridades permitidos, `parentTaskId` opcional y `categoryIds` (array de hasta 20 ids únicos). |
 | `src/services/auth.service.js` | Hash bcrypt (coste 12), login con mensaje genérico, creación de sesión, rotación del refresh token y revocación global ante reutilización. |
-| `src/services/categories.service.js` | Lista el catálogo y comprueba que todos los `categoryIds` existan antes de asignarlos. |
+| `src/services/categories.service.js` | Lista, crea, actualiza y elimina categorías; genera un slug único, evita nombres duplicados (sin distinguir mayúsculas) y valida que los `categoryIds` existan. |
 | `src/services/tasks.service.js` | Normaliza filtros multi-valor, 404, validación de la tarea padre (misma persona), categorías existentes y paso del `userId` al repositorio. |
 | `src/repositories/users.repository.js` | SQL de usuarios; solo expone `password_hash` en consultas internas de login. |
 | `src/repositories/refreshTokens.repository.js` | Alta, búsqueda por hash, rotación atómica (revocar + insertar) y revocación por token/usuario. |
-| `src/repositories/categories.repository.js` | `SELECT` del catálogo global y búsqueda por ids. |
+| `src/repositories/categories.repository.js` | SQL del catálogo global: listado, búsqueda por id/nombre/slug, alta, actualización y borrado. |
 | `src/repositories/tasks.repository.js` | Todo el SQL de tareas; **cada consulta filtra por `user_id`**, agrega categorías con `json_agg` y escribe tarea + relación N:M en transacción. |
 | `src/utils/jwt.js` | Firma/verifica el access token con `issuer` y `audience` fijos. |
 | `src/utils/tokens.js` | Genera refresh tokens con `randomBytes(48)`, calcula SHA-256 y la fecha de expiración. |
@@ -344,9 +348,9 @@ migraciones.
 
 ### `categories`
 
-Catálogo **global** (compartido por todos los usuarios) de etiquetas asignables a las tareas. No
-hay CRUD por API: solo se expone el listado con `GET /api/categories`; las categorías se cargan con
-el seed o por SQL.
+Catálogo **global** (compartido por todos los usuarios) de etiquetas asignables a las tareas. Está
+expuesto por API con CRUD completo (`GET`, `POST`, `PATCH`, `DELETE`) detrás de autenticación; el
+seed precarga cuatro categorías. Al borrar una categoría, las asignaciones se eliminan en cascada.
 
 | Columna | Tipo | Restricciones |
 | ------- | ---- | ------------- |
@@ -476,6 +480,9 @@ Base: `http://localhost:3000/api`
 | `POST` | `/auth/logout` | Cookie | Revoca la sesión y borra la cookie. |
 | `GET` | `/auth/me` | Bearer | Devuelve el usuario autenticado. |
 | `GET` | `/categories` | Bearer | Catálogo global de categorías. |
+| `POST` | `/categories` | Bearer | Crea una categoría (`name`, `color` opcional). |
+| `PATCH` | `/categories/:id` | Bearer | Actualiza nombre y/o color. |
+| `DELETE` | `/categories/:id` | Bearer | Elimina la categoría y sus asignaciones (204). |
 | `GET` | `/tasks` | Bearer | Lista las tareas del usuario. Filtros: `status`, `priority`, `categoryIds`, `search`. |
 | `POST` | `/tasks` | Bearer | Crea una tarea con categorías opcionales. |
 | `GET` | `/tasks/:id` | Bearer | Obtiene una tarea propia. |
@@ -540,6 +547,29 @@ Authorization: Bearer <accessToken>
 
 El catálogo es global y requiere sesión. Se usa para el selector del formulario y para las opciones
 de categoría del desplegable de filtros.
+
+```http
+POST /api/categories
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{ "name": "Hogar", "color": "#0ea5e9" }
+```
+
+```json
+201 Created
+{ "data": { "id": 5, "name": "Hogar", "slug": "hogar", "color": "#0ea5e9" } }
+```
+
+- `name` es obligatorio al crear (1–80 caracteres) y no puede repetirse sin distinguir
+  mayúsculas; un duplicado devuelve **409**.
+- `color` es opcional y debe ser hexadecimal (`#rrggbb`); por defecto `#64748b`.
+- El `slug` se genera automáticamente a partir del nombre y se mantiene único.
+- `PATCH` acepta `name`, `color` o ambos. `DELETE` elimina la categoría y sus filas de
+  `task_categories`; las tareas siguen existiendo sin esa categoría.
+
+> Las categorías son globales: cualquier usuario autenticado puede gestionarlas y los cambios
+> afectan a todos. Restringir la gestión a administradores queda como mejora futura.
 
 ### Tareas
 
@@ -632,6 +662,7 @@ frontend/
     ├── components/
     │   ├── ActiveFilters.jsx      Chips de filtros activos y «Limpiar todo»
     │   ├── Alert.jsx              Mensajes de error accesibles
+    │   ├── CategoryManager.jsx    Toggle + formulario CRUD de categorías
     │   ├── FilterDropdown.jsx     Desplegable de filtros inactivos
     │   ├── TaskForm.jsx           Alta con estado, prioridad y categorías
     │   ├── TaskItem.jsx           Badges, cambio de estado y borrado
@@ -654,12 +685,13 @@ frontend/
 | `src/api/client.js` | Construye peticiones con `credentials: 'include'`; guarda el access token en memoria; ante 401 hace un refresh (single-flight) y reintenta; notifica a `AuthContext` si la sesión murió. |
 | `src/api/auth.api.js` | Llama a los endpoints de auth, guarda/limpia el token y expone `refresh`/`me`. |
 | `src/api/tasks.api.js` | Lista/crea/actualiza/borra tareas; desempaqueta `{ data }`. |
-| `src/api/categories.api.js` | `GET /categories`; desempaqueta `{ data }`. |
+| `src/api/categories.api.js` | Lista, crea, actualiza y elimina categorías; desempaqueta `{ data }`. |
 | `src/context/AuthContext.jsx` | Recupera la sesión al cargar con `/auth/refresh`, mantiene `user`, `initializing` y acciones `login`/`register`/`logout`. |
 | `src/pages/LoginPage.jsx` | Pestañas login/registro, validación local, errores de API, estado de envío y credenciales demo. |
-| `src/pages/TasksPage.jsx` | Hook de tareas, contadores, búsqueda, grupos de filtros, chips activos y filtrado combinado en cliente. |
+| `src/pages/TasksPage.jsx` | Hook de tareas, contadores, búsqueda, grupos de filtros, chips activos, gestión de categorías y filtrado combinado en cliente. |
 | `src/hooks/useTasks.js` | Carga inicial y operaciones CRUD con `saving`/`error`; sincroniza la lista con la respuesta del servidor. |
-| `src/hooks/useCategories.js` | Carga el catálogo una vez al montar y expone `categories`/`loading`/`error`. |
+| `src/hooks/useCategories.js` | Carga el catálogo y expone `categories`, `loading`, `saving`, `error` y las acciones CRUD; mantiene la lista ordenada. |
+| `src/components/CategoryManager.jsx` | Toggle de todas las categorías + input y botones Agregar/Eliminar/Actualizar. Seleccionar un toggle rellena el input; Eliminar y Actualizar usan la categoría seleccionada e Agregar usa el texto. |
 | `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría); solo muestra opciones inactivas, cierra con clic fuera/Escape y permanece abierto al elegir. |
 | `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y reaparecen en el desplegable. |
 | `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado, prioridad y selección múltiple de categorías en chips. |
@@ -682,6 +714,17 @@ frontend/
   aplica además como AND.
 - El filtrado se hace en el cliente sobre las tareas ya cargadas, por lo que no hay peticiones
   adicionales al cambiar de filtro.
+
+### Gestión de categorías
+
+- La tarjeta **Gestionar categorías** muestra un toggle con todo el catálogo. La selección es única:
+  al pulsar una categoría se marca y su nombre se copia al input; al volver a pulsarla se deselecciona.
+- **Agregar categoría** usa exclusivamente el texto del input.
+- **Actualizar** usa la categoría seleccionada en el toggle y el texto del input como nuevo nombre.
+- **Eliminar** usa la categoría seleccionada, pide confirmación y elimina también sus asignaciones.
+- Tras cualquier operación, el catálogo se actualiza en memoria: el formulario de tareas, los badges
+  y el desplegable de filtros reflejan los cambios. Si se borra una categoría marcada en el
+  formulario de tareas o usada como filtro activo, esa selección se retira automáticamente.
 
 ### Gestión de la sesión en el cliente
 
@@ -743,6 +786,15 @@ React Router sería el siguiente paso.
 4. El repositorio abre una transacción, inserta la tarea, inserta las filas de `task_categories` y
    devuelve la tarea con `categories` agregadas; el hook la añade al estado.
 
+### Gestionar una categoría
+
+1. `CategoryManager` recibe el catálogo de `useCategories` y lo pinta como toggle de selección única.
+2. Al seleccionar, copia el nombre al input; **Agregar** valida el input y llama `POST /categories`.
+3. **Actualizar** llama `PATCH /categories/:id` con el id seleccionado y el texto del input.
+4. **Eliminar** confirma y llama `DELETE /categories/:id`; la FK elimina las asignaciones.
+5. `useCategories` actualiza su estado con la respuesta, y `TasksPage` sincroniza el formulario, los
+   badges, el desplegable de filtros y los chips activos.
+
 ### Añadir y quitar filtros
 
 1. `useCategories` carga una vez el catálogo y `TasksPage` construye los grupos (estado, prioridad,
@@ -790,7 +842,9 @@ React Router sería el siguiente paso.
 - **Rate limiting** en auth (20 intentos / 15 min / IP).
 - **Errores centralizados** y envelope `{ data }` / `{ error }`.
 - **Catálogo global de categorías**: compartido por todos los usuarios; cada uno decide qué
-  asignar a sus tareas.
+  asignar a sus tareas. El CRUD está disponible para cualquier sesión autenticada.
+- **Gestión con toggle único**: el toggle selecciona la categoría sobre la que actúan Eliminar y
+  Actualizar; el input alimenta Agregar y Actualizar. El borrado se confirma y cae en cascada.
 - **N:M con tabla puente** `task_categories` y PK compuesta; integridad garantizada por FKs.
 - **Filtros multi-valor**: OR dentro del mismo tipo, AND entre tipos; búsqueda de texto aparte.
 - **Filtrado en cliente** sobre las tareas cargadas para que los chips sean instantáneos; la API
@@ -833,7 +887,8 @@ React Router sería el siguiente paso.
 
 ## 16. Verificación realizada
 
-Con un **clúster PostgreSQL temporal** (puerto 55434, ya eliminado) y el servidor en el puerto 3011:
+La verificación se hizo con **clústeres PostgreSQL temporales** (puertos 55434/55435, ya eliminados) y
+la API en los puertos 3011/3012:
 
 | Prueba | Resultado |
 | ------ | --------- |
@@ -841,6 +896,15 @@ Con un **clúster PostgreSQL temporal** (puerto 55434, ya eliminado) y el servid
 | Seed: usuario demo + 3 tareas + 4 categorías + 4 asignaciones | OK |
 | `GET /api/categories` autenticado | 200, 4 categorías con id/name/slug/color |
 | `GET /api/categories` sin token | 401 |
+| Crear categoría con nombre y color | 201, slug generado y color normalizado |
+| Nombre duplicado sin distinguir mayúsculas | 409 |
+| Nombre vacío, >80 o color inválido | 400 |
+| Actualizar nombre y color | 200; el slug se regenera |
+| Actualizar a un nombre existente | 409 |
+| `PATCH` vacío, id inválido o categoría inexistente | 400/400/404 |
+| Categoría renombrada en una tarea asignada | la tarea y el filtro reflejan el nuevo nombre |
+| Eliminar categoría asignada | 204; la tarea queda sin esa categoría (cascade) |
+| Eliminar sin token / inexistente / id inválido | 401/404/400 |
 | `GET /api/tasks` incluye `categories[]` por tarea | OK |
 | Tarea JWT con 2 categorías (Trabajo + Urgente) | OK |
 | Crear tarea con `categoryIds` | 201 y 2 categorías ordenadas |
@@ -861,10 +925,10 @@ Con un **clúster PostgreSQL temporal** (puerto 55434, ya eliminado) y el servid
 | Borrar tarea propia | 204 y deja de existir |
 | `docs/Database.sql` ejecutado dos veces | OK; 5 tablas y 16 índices |
 | Seed sobre el esquema de `Database.sql` | OK (3 tareas, 4 categorías, 4 asignaciones) |
-| `npm run build` del frontend | OK (45 módulos) |
-| Sintaxis de todos los archivos del backend (`node --check`, 29 archivos) | OK |
+| `npm run build` del frontend | OK (46 módulos) |
+| Sintaxis de todos los archivos del backend (`node --check`, 30 archivos) | OK |
 
-Suite funcional: **44 comprobaciones, 0 fallos**.
+Suite funcional: **44 comprobaciones de tareas/categorías + 34 de CRUD de categorías, 0 fallos**.
 
 ---
 
@@ -875,7 +939,7 @@ Suite funcional: **44 comprobaciones, 0 fallos**.
 - Refresh por dispositivo con listado/revocación selectiva.
 - React Router y rutas protegidas declarativas.
 - Paginación de tareas; mover el filtrado a servidor si el volumen crece.
-- CRUD de categorías para administradores (hoy el catálogo se carga por seed/SQL).
+- Restringir la gestión del catálogo global a administradores (`requireRole('admin')`).
 - Docker Compose (PostgreSQL + API + frontend) y CI.
 - OpenAPI/Swagger y logs estructurados.
 - En producción: HTTPS, `COOKIE_SAMESITE=none` si hay dominios distintos, proxy inverso y

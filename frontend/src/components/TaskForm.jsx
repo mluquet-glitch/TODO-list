@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
 
 const INITIAL_FORM = {
@@ -16,6 +16,19 @@ const INITIAL_FORM = {
 export default function TaskForm({ categories = [], onCreate, saving }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [localError, setLocalError] = useState('');
+
+  // Si una categoría se elimina mientras el formulario la tenía marcada,
+  // quitamos su id para no enviar una referencia inexistente.
+  useEffect(() => {
+    setForm((current) => {
+      const validIds = current.categoryIds.filter((id) =>
+        categories.some((category) => category.id === id),
+      );
+
+      if (validIds.length === current.categoryIds.length) return current;
+      return { ...current, categoryIds: validIds };
+    });
+  }, [categories]);
 
   function handleChange(event) {
     const { name, value } = event.target;

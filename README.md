@@ -62,10 +62,13 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
 - Dentro de un mismo tipo los filtros se combinan con OR; entre tipos distintos, con AND. La
   búsqueda por texto se aplica además.
 - La API acepta `status`, `priority` y `categoryIds` multi-valor, además de `search`.
+- El panel **Gestionar categorías** muestra un toggle con todo el catálogo: selecciona una para
+  **Actualizar** o **Eliminar**, escribe un nombre y pulsa **Agregar categoría** para crear una
+  nueva. Eliminar pide confirmación y quita la categoría de las tareas que la usen.
 
 Endpoints principales: `POST /api/auth/register`, `POST /api/auth/login`,
-`POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET /api/categories` y el
-CRUD en `/api/tasks`.
+`POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`, el CRUD de
+`/api/categories` y el CRUD de `/api/tasks`.
 
 La documentación completa (estructura, dependencias, responsabilidades, esquema, API y
 decisiones) está en [docs/ESTRUCTURA.md](docs/ESTRUCTURA.md). El esquema canónico de la base de
