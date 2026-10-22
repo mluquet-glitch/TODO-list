@@ -73,6 +73,8 @@ También puedes crear una cuenta nueva desde la pantalla de registro.
 - El título de cada tarea es un botón que abre su **detalle**: un índice superior muestra el padre y
   sus hijas (con la tarea actual en rojo), se editan sus datos y categorías, se crean subtareas
   enlazadas y se listan sus hijas directas. La pantalla principal solo muestra las tareas sin padre.
+- Cada tarjeta muestra una línea de la descripción y un **toggle de subtareas** que las despliega en
+  tonos apagados, con título y parte de la descripción, y permite abrirlas con un clic.
 
 Endpoints principales: `POST /api/auth/register`, `POST /api/auth/login`,
 `POST /api/auth/refresh`, `POST /api/auth/logout`, `GET /api/auth/me`, el CRUD de

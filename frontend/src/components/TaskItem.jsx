@@ -1,7 +1,21 @@
+import { useState } from 'react';
 import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '../constants/tasks.js';
 
-/** Tarjeta de una tarea: título clicable, badges, cambio de estado y borrado. */
-export default function TaskItem({ task, onChange, onDelete, onOpen, busy }) {
+/**
+ * Tarjeta de una tarea: título clicable, vista previa de la descripción,
+ * badges, cambio de estado, borrado y desplegable de subtareas.
+ */
+export default function TaskItem({
+  task,
+  subtasks = [],
+  onChange,
+  onDelete,
+  onOpen,
+  busy,
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const subtasksId = `subtasks-${task.id}`;
+
   async function handleDelete() {
     if (window.confirm(`¿Eliminar la tarea "${task.title}"?`)) {
       await onDelete(task.id);
@@ -36,7 +50,11 @@ export default function TaskItem({ task, onChange, onDelete, onOpen, busy }) {
           )}
         </div>
 
-        {task.description && <p className="task__description">{task.description}</p>}
+        {task.description && (
+          <p className="task__description" title={task.description}>
+            {task.description}
+          </p>
+        )}
 
         {task.categories?.length > 0 && (
           <div className="task__categories">
@@ -51,6 +69,21 @@ export default function TaskItem({ task, onChange, onDelete, onOpen, busy }) {
             ))}
           </div>
         )}
+
+        <button
+          type="button"
+          className={`task__subtasks-toggle ${
+            expanded ? 'task__subtasks-toggle--open' : ''
+          }`}
+          onClick={() => setExpanded((current) => !current)}
+          aria-expanded={expanded}
+          aria-controls={subtasksId}
+        >
+          <span className="task__subtasks-chevron" aria-hidden="true">
+            {expanded ? '▾' : '▸'}
+          </span>
+          {expanded ? 'Ocultar subtareas' : `Ver subtareas (${subtasks.length})`}
+        </button>
       </div>
 
       <div className="task__actions">
@@ -80,6 +113,34 @@ export default function TaskItem({ task, onChange, onDelete, onOpen, busy }) {
           Eliminar
         </button>
       </div>
+
+      {expanded && (
+        <div className="task__subtasks" id={subtasksId}>
+          {subtasks.length === 0 ? (
+            <p className="task__subtasks-empty">Esta tarea no tiene subtareas.</p>
+          ) : (
+            <ul className="task__subtasks-list">
+              {subtasks.map((subtask) => (
+                <li key={subtask.id}>
+                  <button
+                    type="button"
+                    className="task__subtask"
+                    onClick={() => onOpen?.(subtask.id)}
+                    title="Abrir detalle de la subtarea"
+                  >
+                    <span className="task__subtask-title">{subtask.title}</span>
+                    {subtask.description && (
+                      <span className="task__subtask-description">
+                        {subtask.description}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </li>
   );
 }

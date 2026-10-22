@@ -67,6 +67,9 @@ Características principales:
 - **Detalle y subtareas**: el título de cada tarea es un botón que abre su detalle; allí se editan
   sus datos y categorías, se crean subtareas enlazadas y se listan sus hijas. La pantalla principal
   solo muestra las tareas sin padre.
+- **Tarjetas expandibles**: cada tarjeta muestra una línea de la descripción y un toggle que
+  despliega sus subtareas, también con título y descripción recortada, en tonos apagados y
+  clicables para abrir su detalle.
 - Logout real: revoca el refresh token en la base de datos y limpia la cookie.
 - Rate limiting en login/registro para frenar fuerza bruta.
 
@@ -714,8 +717,8 @@ frontend/
 | `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, estado, prioridad y categorías. Acepta `parentTaskId`, `heading` y `submitLabel` para crear subtareas. |
 | `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, estado, prioridad, categorías, guardado y borrado. |
 | `src/components/TaskHierarchyIndex.jsx` | Índice superior con la tarea padre (la propia si es raíz) y todas sus hijas directas; la tarea abierta se marca en rojo y cada entrada permite navegar. |
-| `src/components/TaskItem.jsx` | Título como botón accesible que abre el detalle; badges de estado, prioridad, categoría y subtarea; selector de estado y borrado. |
-| `src/components/TaskList.jsx` | Renderiza la lista o los estados de carga/vacío; reenvía la apertura del detalle. |
+| `src/components/TaskItem.jsx` | Título-botón, vista previa de descripción en una línea, badges, toggle de subtareas (título + descripción recortada, clicables) y acciones de estado/borrado. |
+| `src/components/TaskList.jsx` | Agrupa las hijas por `parentTaskId` y renderiza la lista o los estados de carga/vacío; reenvía la apertura del detalle. |
 | `src/components/Alert.jsx` | Mensaje `role="alert"` con reintentar/cerrar. |
 | `src/constants/tasks.js` | Enums y etiquetas en español. |
 | `src/index.css` | Tokens de diseño, layout, formularios, tarjetas, login, badges y responsive. |

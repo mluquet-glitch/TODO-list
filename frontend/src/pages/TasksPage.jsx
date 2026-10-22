@@ -170,6 +170,7 @@ export default function TasksPage() {
           <FilteredTaskList
             filters={detailFilters}
             tasks={childTasks}
+            allTasks={tasks}
             loading={loading}
             busy={saving}
             onChange={updateTask}
@@ -227,6 +228,7 @@ export default function TasksPage() {
         <FilteredTaskList
           filters={mainFilters}
           tasks={rootTasks}
+          allTasks={tasks}
           loading={loading}
           busy={saving}
           onChange={updateTask}

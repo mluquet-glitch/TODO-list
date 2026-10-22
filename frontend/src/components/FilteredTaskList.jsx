@@ -10,6 +10,7 @@ import TaskList from './TaskList.jsx';
 export default function FilteredTaskList({
   filters,
   tasks,
+  allTasks = [],
   loading,
   busy,
   onChange,
@@ -53,6 +54,7 @@ export default function FilteredTaskList({
 
       <TaskList
         tasks={visibleTasks}
+        allTasks={allTasks}
         loading={loading}
         busy={busy}
         onChange={onChange}
