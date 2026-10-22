@@ -1,0 +1,25 @@
+{
+  "name": "gestor-tareas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo del gestor de tareas: API Express + PostgreSQL y SPA React + Vite",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently --kill-others --names api,web --prefix-colors cyan,green \"npm run dev --workspace backend\" \"npm run dev --workspace frontend\"",
+    "dev:api": "npm run dev --workspace backend",
+    "dev:web": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "start": "npm run start --workspace backend",
+    "db:migrate": "npm run db:migrate --workspace backend",
+    "db:seed": "npm run db:seed --workspace backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

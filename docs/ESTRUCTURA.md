@@ -30,9 +30,11 @@ muchos-a-muchos y filtros dinámicos.
 
 ```
 C:\CODIGO\Tareas
-├── backend/      API REST (Express) + PostgreSQL + JWT
-├── frontend/     SPA (React + Vite) con login y gestión de tareas
-└── docs/         Documentación y script de base de datos
+├── package.json       Workspaces y scripts raíz (dev, build, db)
+├── package-lock.json  Árbol de dependencias del monorepo
+├── backend/           API REST (Express) + PostgreSQL + JWT
+├── frontend/          SPA (React + Vite) con login y gestión de tareas
+└── docs/              Documentación y script de base de datos
 ```
 
 El frontend nunca habla con PostgreSQL: todo pasa por la API. En desarrollo Vite hace proxy de
@@ -112,16 +114,32 @@ Requisitos mínimos:
 createdb -U postgres tareas
 ```
 
-### 3.2 Backend
+### 3.2 Configurar el entorno
 
 ```powershell
-cd backend
-Copy-Item .env.example .env      # Linux/macOS: cp .env.example .env
-# Ajustar DATABASE_URL y, en producción, JWT_ACCESS_SECRET
+Copy-Item backend/.env.example backend/.env
+Copy-Item frontend/.env.example frontend/.env
+# Ajustar DATABASE_URL y, en producción, JWT_ACCESS_SECRET en backend/.env
+```
+
+### 3.3 Instalar y arrancar desde la raíz
+
+El repositorio usa npm workspaces: una sola instalación en la raíz resuelve las dependencias de
+`backend` y `frontend`.
+
+```powershell
 npm install
 npm run db:migrate
-npm run db:seed                  # usuario demo + 3 tareas + 4 categorías
-npm run dev                      # http://localhost:3000/api
+npm run db:seed          # usuario demo + 3 tareas + 4 categorías
+npm run dev              # API :3000 + SPA :5173 en paralelo
+```
+
+El script `dev` usa `concurrently`: prefija los logs con `api` y `web` y detiene ambos procesos
+cuando uno termina. También se pueden levantar por separado:
+
+```powershell
+npm run dev:api          # solo http://localhost:3000/api
+npm run dev:web          # solo http://localhost:5173
 ```
 
 Credenciales del seed:
@@ -131,6 +149,8 @@ email:    demo@tareas.local
 password: Demo1234!
 ```
 
+Abrir <http://localhost:5173>, iniciar sesión con la cuenta demo o crear una cuenta nueva.
+
 Comprobar la API:
 
 ```powershell
@@ -138,17 +158,6 @@ curl http://localhost:3000/api/health
 curl http://localhost:3000/api/tasks
 # -> 401: las tareas requieren autenticación
 ```
-
-### 3.3 Frontend
-
-```powershell
-cd frontend
-Copy-Item .env.example .env
-npm install
-npm run dev                      # http://localhost:5173
-```
-
-Abrir <http://localhost:5173>, iniciar sesión con la cuenta demo o crear una cuenta nueva.
 
 ### 3.4 Si ya tenías la base de la versión anterior
 
@@ -896,7 +905,20 @@ React Router sería el siguiente paso.
 
 ## 13. Comandos disponibles
 
-### Backend
+### Raíz del monorepo
+
+| Comando | Descripción |
+| ------- | ----------- |
+| `npm install` | Instala las dependencias de todos los workspaces. |
+| `npm run dev` | Levanta API y frontend en paralelo con recarga. |
+| `npm run dev:api` | Levanta solo la API. |
+| `npm run dev:web` | Levanta solo el frontend. |
+| `npm run build` | Build de producción del frontend. |
+| `npm start` | Arranca la API sin recarga. |
+| `npm run db:migrate` | Aplica migraciones pendientes. |
+| `npm run db:seed` | Carga usuario demo, tareas y categorías. |
+
+### Backend (`backend/`)
 
 | Comando | Descripción |
 | ------- | ----------- |
@@ -905,7 +927,7 @@ React Router sería el siguiente paso.
 | `npm run db:migrate` | Aplica migraciones pendientes. |
 | `npm run db:seed` | Carga usuario demo, tareas y categorías. |
 
-### Frontend
+### Frontend (`frontend/`)
 
 | Comando | Descripción |
 | ------- | ----------- |

@@ -12,27 +12,29 @@ docs/       Documentación y Database.sql
 ## Inicio rápido
 
 1. Crear una base de datos PostgreSQL llamada `tareas`.
-2. Backend:
+2. Copiar los archivos de entorno desde la raíz:
 
    ```powershell
-   cd backend
-   Copy-Item .env.example .env    # ajustar DATABASE_URL y JWT_ACCESS_SECRET
+   Copy-Item backend/.env.example backend/.env
+   Copy-Item frontend/.env.example frontend/.env
+   # Ajustar DATABASE_URL y JWT_ACCESS_SECRET en backend/.env
+   ```
+
+3. Instalar dependencias y preparar la base desde la raíz:
+
+   ```powershell
    npm install
    npm run db:migrate
    npm run db:seed
-   npm run dev
    ```
 
-3. Frontend (en otra terminal):
+4. Arrancar API y frontend a la vez:
 
    ```powershell
-   cd frontend
-   Copy-Item .env.example .env
-   npm install
    npm run dev
    ```
 
-Abrir <http://localhost:5173>.
+`npm run dev` levanta ambos servicios con recarga: la API en <http://localhost:3000/api> y la SPA en <http://localhost:5173>. También puedes arrancarlos por separado con `npm run dev:api` y `npm run dev:web`.
 
 ### Cuenta de demostración
 
