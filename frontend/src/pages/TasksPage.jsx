@@ -162,6 +162,9 @@ export default function TasksPage() {
           onCreate={createTask}
           saving={saving}
           parentTaskId={selectedTask.id}
+          initialCategoryIds={(selectedTask.categories ?? []).map(
+            (category) => category.id,
+          )}
           heading={`Nueva subtarea de «${selectedTask.title}»`}
           submitLabel="Añadir subtarea"
         />

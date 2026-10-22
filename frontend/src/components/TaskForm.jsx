@@ -10,6 +10,11 @@ const INITIAL_FORM = {
   categoryIds: [],
 };
 
+/** Conserva las categorías iniciales al limpiar el formulario tras crear. */
+function initialForm(initialCategoryIds) {
+  return { ...INITIAL_FORM, categoryIds: [...initialCategoryIds] };
+}
+
 /**
  * Formulario de alta de tareas, con selección múltiple de categorías.
  * `onCreate` devuelve true/false para saber si limpiar el formulario.
@@ -21,10 +26,11 @@ export default function TaskForm({
   onCreate,
   saving,
   parentTaskId = null,
+  initialCategoryIds = [],
   heading = 'Nueva tarea',
   submitLabel = 'Añadir tarea',
 }) {
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [form, setForm] = useState(() => initialForm(initialCategoryIds));
   const [localError, setLocalError] = useState('');
 
   // Si una categoría se elimina mientras el formulario la tenía marcada,
@@ -76,7 +82,7 @@ export default function TaskForm({
       ...(parentTaskId ? { parentTaskId } : {}),
     });
 
-    if (created) setForm(INITIAL_FORM);
+    if (created) setForm(initialForm(initialCategoryIds));
   }
 
   return (

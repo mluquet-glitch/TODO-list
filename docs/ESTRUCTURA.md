@@ -728,7 +728,7 @@ frontend/
 | `src/components/FilterDropdown.jsx` | Botón «Filtros» + panel agrupado (estado, prioridad, categoría, fecha límite). Cada opción se activa/desactiva con `aria-pressed` y ✓; el panel permanece abierto para combinar varias. |
 | `src/components/FilteredTaskList.jsx` | Barra de búsqueda, desplegable, chips, listado y contador; se usa tanto en la pantalla principal como en las subtareas del detalle. |
 | `src/components/ActiveFilters.jsx` | Botones/chips de los filtros activos; al pulsarlos se retiran y su opción deja de estar marcada en el desplegable. |
-| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, fecha límite, estado, prioridad y categorías. Acepta `parentTaskId`, `heading` y `submitLabel` para crear subtareas. |
+| `src/components/TaskForm.jsx` | Formulario controlado con título, descripción, fecha límite, estado, prioridad y categorías. Acepta `parentTaskId`, `initialCategoryIds`, `heading` y `submitLabel`; al crear subtareas precarga las categorías del padre. |
 | `src/components/TaskDetail.jsx` | Tarjeta de edición de la tarea abierta: título, descripción, fecha límite, estado, prioridad, categorías, guardado y borrado. |
 | `src/components/TaskHierarchyIndex.jsx` | Índice lateral fijo con la tarea padre (la propia si es raíz) y todas sus hijas directas; incluye un botón para volver a la pantalla principal, la tarea abierta se marca en rojo, cada entrada permite navegar y el panel se abre/cierra sin perder la posición al hacer scroll. |
 | `src/components/TaskItem.jsx` | Título-botón, vista previa de descripción en una línea, fecha límite (en rojo si está vencida), badges, toggle de subtareas clicables y acciones de estado/borrado. |
@@ -766,8 +766,11 @@ frontend/
   botón ×, con `Escape` o haciendo clic fuera; en móvil ocupa el ancho disponible y el disparador
   pasa a la esquina inferior derecha.
 - Después aparece la tarjeta **Editar tarea** (datos y categorías), fuera de cualquier listado.
-  Debajo aparece el mismo `TaskForm` de alta, configurado con `parentTaskId`, `heading` y
-  `submitLabel`, por lo que lo que se cree ahí queda enlazado como subtarea.
+  Debajo aparece el mismo `TaskForm` de alta, configurado con `parentTaskId`, `heading`,
+  `submitLabel` e `initialCategoryIds`; el formulario abre con las categorías de la tarea padre ya
+  marcadas y las conserva al limpiarse después de crear cada subtarea.
+- La nueva subtarea queda enlazada al padre y también recibe esas categorías en la API, porque el
+  formulario envía la selección precargada salvo que el usuario la modifique.
 - Más abajo se listan solo las hijas directas de la tarea abierta, con su propia barra de búsqueda
   y los mismos filtros multi-selección; sus títulos también abren su propio detalle. El botón de
   volver regresa al padre si existe o al listado principal. Los filtros del detalle se reinician al
@@ -1017,6 +1020,7 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | Tarea pendiente con fecha pasada | línea en rojo «Venció el …» |
 | Índice de jerarquía fijo a la derecha | posición fija comprobada tras hacer scroll; abre/cierra con botón, `Escape` y clic fuera |
 | Botón «Volver a la pantalla principal» del índice | cierra el detalle y restaura el listado principal |
+| Formulario de subtarea con padre categorizado | abre con las categorías del padre marcadas y las conserva tras crear |
 | Índice en móvil (390 px) | panel dentro del viewport; disparador en la esquina inferior derecha |
 | Tarea completada con fecha pasada | no se marca como vencida |
 | Filtros `Vencidas`, `Para hoy`, `Próximos 7 días` y `Sin fecha` | resultados correctos |
