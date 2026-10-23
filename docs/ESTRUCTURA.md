@@ -69,10 +69,10 @@ Características principales:
   e Agregar usa el input.
 - **Resumen**: acordeón cerrado por defecto y en gris claro que, al abrirse, muestra el total de
   tareas y el conteo por estado.
-- **Detalle y subtareas**: el título de cada tarea es un botón que abre su detalle; allí se editan
-  sus datos y categorías, se crean subtareas enlazadas y se listan sus hijas. Las secciones de
-  edición, alta y listado son acordeones: solo «Nueva subtarea» aparece abierta al entrar. La
-  pantalla principal solo muestra las tareas sin padre.
+- **Detalle y subtareas**: el título de cada tarea es un botón que abre su detalle. La pantalla usa
+  dos columnas: a la izquierda, los acordeones «Editar tarea», «Nueva subtarea» y «Gestionar
+  categorías» (solo la nueva subtarea abre desplegada); a la derecha, el listado de subtareas
+  siempre visible. La pantalla principal solo muestra las tareas sin padre.
 - **Fechas límite**: cada tarea puede tener una fecha opcional que se muestra en la tarjeta y se
   resalta en rojo cuando está vencida; los filtros permiten ver vencidas, para hoy, próximas o sin
   fecha.
@@ -779,19 +779,24 @@ frontend/
   resalta en rojo. El panel incluye el botón **← Volver a la pantalla principal**, se cierra con su
   botón ×, con `Escape` o haciendo clic fuera; en móvil ocupa el ancho disponible y el disparador
   pasa a la esquina inferior derecha.
-- Después aparece la tarjeta **Editar tarea** (datos y categorías), fuera de cualquier listado y
-  plegada por defecto. Al abrirla muestra sus campos; al cerrarla, la tarjeta queda en gris claro.
+- La pantalla se divide en dos columnas (`task-detail-page__columns`): la izquierda agrupa los
+  formularios y la derecha el listado de subtareas. En pantallas estrechas (≤ 820 px) las columnas
+  pasan a apilarse.
+- En la columna izquierda aparece la tarjeta **Editar tarea** (datos y categorías), plegada por
+  defecto. Al abrirla muestra sus campos; al cerrarla, la tarjeta queda en gris claro.
 - Debajo aparece el mismo `TaskForm` de alta, configurado con `parentTaskId`, `heading`,
   `submitLabel`, `initialCategoryIds` y `defaultOpen`. Es la única sección que abre desplegada al
   entrar en el detalle: muestra las categorías de la tarea padre ya marcadas y las conserva al
   limpiarse después de crear cada subtarea.
 - La nueva subtarea queda enlazada al padre y también recibe esas categorías en la API, porque el
   formulario envía la selección precargada salvo que el usuario la modifique.
-- Más abajo aparece **Subtareas (N)** como acordeón cerrado por defecto, con fondo gris claro. Al
-  abrirlo se listan solo las hijas directas de la tarea abierta, con su propia barra de búsqueda y
-  los mismos filtros multi-selección; sus títulos también abren su propio detalle. El botón de
-  volver regresa al padre si existe o al listado principal. Los filtros del detalle y el estado del
-  acordeón se reinician al cambiar de tarea.
+- Más abajo se reutiliza `CategoryManager` como tercer acordeón de la izquierda, cerrado por
+  defecto y con el mismo fondo gris. Sus operaciones actualizan el catálogo global y los formularios
+  de la pantalla.
+- La columna derecha muestra **Subtareas (N)** como tarjeta fija, sin acordeón. Se listan siempre
+  las hijas directas de la tarea abierta, con su propia barra de búsqueda y los mismos filtros
+  multi-selección; sus títulos también abren su propio detalle. El botón de volver regresa al padre
+  si existe o al listado principal. Los filtros se reinician al cambiar de tarea.
 - La pantalla principal calcula `rootTasks = tasks.filter(parentTaskId === null)`; los contadores,
   filtros y búsqueda trabajan sobre esas tareas raíz. Las hijas se ven en el detalle de su padre.
 - Al guardar, `useTasks` actualiza la tarea en memoria y el detalle refleja los cambios sin recargar.
@@ -1055,9 +1060,9 @@ eliminados) y la API en los puertos 3011/3012/3013:
 | Formulario de subtarea con padre categorizado | abre con las categorías del padre marcadas y las conserva tras crear |
 | Selector de estado en la lista desplegada de subtareas | actualiza la interfaz y persiste el nuevo estado vía `PATCH /api/tasks/:id` |
 | Acordeones «Nueva tarea» y «Editar tarea» | cerrados por defecto; abren sus campos y recuperan el fondo blanco |
-| Acordeón «Nueva subtarea» | abierto por defecto al entrar en el detalle |
-| Acordeón «Subtareas» | cerrado por defecto, fondo gris claro y apertura bajo demanda |
-| Acordeón «Gestionar categorías» | cerrado por defecto; al abrirlo muestra el toggle y el formulario CRUD |
+| Acordeón «Nueva subtarea» | abierto por defecto en la columna izquierda del detalle |
+| Listado «Subtareas» del detalle | visible siempre en la columna derecha, sin toggle |
+| Acordeón «Gestionar categorías» | cerrado por defecto; reutilizado en la pantalla principal y en la columna izquierda del detalle |
 | Acordeón «Resumen» | cerrado por defecto; al abrirlo muestra el total y el conteo por estado |
 | Índice en móvil (390 px) | panel dentro del viewport; disparador en la esquina inferior derecha |
 | Tarea completada con fecha pasada | no se marca como vencida |

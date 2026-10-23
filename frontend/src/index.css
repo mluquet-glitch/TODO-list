@@ -1126,8 +1126,23 @@ label.checkbox-chip--active {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  max-width: 900px;
+  max-width: 1180px;
   margin: 0 auto;
+}
+
+.task-detail-page__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.task-detail-page__sidebar,
+.task-detail-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
 }
 
 .task-detail-page__topbar {
@@ -1453,7 +1468,8 @@ label.checkbox-chip--active {
    Responsive
 --------------------------------------------------------------------------- */
 @media (max-width: 820px) {
-  .tasks-page {
+  .tasks-page,
+  .task-detail-page__columns {
     grid-template-columns: 1fr;
   }
 

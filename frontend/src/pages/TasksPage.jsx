@@ -36,7 +36,6 @@ export default function TasksPage() {
   } = useCategories();
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
-  const [subtasksOpen, setSubtasksOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const summaryId = useId();
   const mainFilters = useTaskFilters(categories);
@@ -61,10 +60,9 @@ export default function TasksPage() {
     [tasks],
   );
 
-  // Si cambiamos de tarea, el detalle empieza sin filtros y con las subtareas plegadas.
+  // Si cambiamos de tarea, el listado de subtareas empieza sin filtros.
   useEffect(() => {
     detailFilters.reset();
-    setSubtasksOpen(false);
   }, [selectedTaskId, detailFilters.reset]);
 
   // Si la tarea abierta se elimina, volvemos a la pantalla principal.
@@ -149,71 +147,61 @@ export default function TasksPage() {
 
         <Alert type="error" message={error} onRetry={refresh} onClose={clearError} />
 
-        <TaskDetail
-          key={selectedTask.id}
-          task={selectedTask}
-          categories={categories}
-          categoriesLoading={categoriesLoading}
-          saving={saving}
-          onUpdate={updateTask}
-          onDelete={handleDeleteTask}
-        />
+        <div className="task-detail-page__columns">
+          <div className="task-detail-page__sidebar">
+            <TaskDetail
+              key={selectedTask.id}
+              task={selectedTask}
+              categories={categories}
+              categoriesLoading={categoriesLoading}
+              saving={saving}
+              onUpdate={updateTask}
+              onDelete={handleDeleteTask}
+            />
 
-        <TaskForm
-          key={`subtask-${selectedTask.id}`}
-          categories={categories}
-          categoriesLoading={categoriesLoading}
-          onCreate={createTask}
-          saving={saving}
-          parentTaskId={selectedTask.id}
-          initialCategoryIds={(selectedTask.categories ?? []).map(
-            (category) => category.id,
-          )}
-          heading={`Nueva subtarea de «${selectedTask.title}»`}
-          submitLabel="Añadir subtarea"
-          defaultOpen
-        />
+            <CategoryManager
+              categories={categories}
+              saving={categorySaving}
+              error={categoriesError}
+              onCreate={createCategory}
+              onUpdate={handleUpdateCategory}
+              onDelete={handleDeleteCategory}
+              onClearError={clearCategoriesError}
+            />
 
-        <section
-          className={`card${
-            subtasksOpen ? '' : ' collapsible-card--closed'
-          }`}
-        >
-          <div className="collapsible-card__header">
-            <h2 className="card__title collapsible-card__title">
-              <button
-                type="button"
-                className="collapsible-card__toggle"
-                aria-expanded={subtasksOpen}
-                aria-controls="detail-subtasks"
-                onClick={() => setSubtasksOpen((current) => !current)}
-              >
-                <span className="collapsible-card__chevron" aria-hidden="true">
-                  {subtasksOpen ? '▾' : '▸'}
-                </span>
-                Subtareas ({childTasks.length})
-              </button>
-            </h2>
+            <TaskForm
+              key={`subtask-${selectedTask.id}`}
+              categories={categories}
+              categoriesLoading={categoriesLoading}
+              onCreate={createTask}
+              saving={saving}
+              parentTaskId={selectedTask.id}
+              initialCategoryIds={(selectedTask.categories ?? []).map(
+                (category) => category.id,
+              )}
+              heading={`Nueva subtarea de «${selectedTask.title}»`}
+              submitLabel="Añadir subtarea"
+              defaultOpen
+            />
           </div>
 
-          {subtasksOpen && (
-            <div id="detail-subtasks" className="collapsible-card__body">
-              <FilteredTaskList
-                filters={detailFilters}
-                tasks={childTasks}
-                allTasks={tasks}
-                loading={loading}
-                busy={saving}
-                onChange={updateTask}
-                onDelete={handleDeleteTask}
-                onOpen={setSelectedTaskId}
-                emptyTitle="Esta tarea no tiene subtareas."
-                emptyHint="Añade una con el formulario de arriba."
-                countLabel="subtareas"
-              />
-            </div>
-          )}
-        </section>
+          <section className="card task-detail-page__content">
+            <h2 className="card__title">Subtareas ({childTasks.length})</h2>
+            <FilteredTaskList
+              filters={detailFilters}
+              tasks={childTasks}
+              allTasks={tasks}
+              loading={loading}
+              busy={saving}
+              onChange={updateTask}
+              onDelete={handleDeleteTask}
+              onOpen={setSelectedTaskId}
+              emptyTitle="Esta tarea no tiene subtareas."
+              emptyHint="Añade una con el formulario de la izquierda."
+              countLabel="subtareas"
+            />
+          </section>
+        </div>
       </div>
     );
   }
