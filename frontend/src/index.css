@@ -1132,7 +1132,7 @@ label.checkbox-chip--active {
 
 .task-detail-page__columns {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 1fr);
+  grid-template-columns: minmax(0,0.5fr) minmax(340px, 1.5fr);
   gap: 1.25rem;
   align-items: start;
 }

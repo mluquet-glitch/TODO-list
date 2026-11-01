@@ -181,7 +181,6 @@ export default function TasksPage() {
               )}
               heading={`Nueva subtarea de «${selectedTask.title}»`}
               submitLabel="Añadir subtarea"
-              defaultOpen
             />
           </div>
 
