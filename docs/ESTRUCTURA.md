@@ -184,7 +184,8 @@ Después: `npm run db:migrate && npm run db:seed`.
 | `PORT`                   | No          | `3000`                  | Puerto HTTP de la API.                                             |
 | `DATABASE_URL`           | Sí\*        | —                       | Cadena de conexión PostgreSQL. Prioritaria sobre las `PG*`.       |
 | `PGHOST` / `PGPORT` …    | Sí\*        | `5432`                  | Alternativa a `DATABASE_URL` (PGUSER, PGPASSWORD, PGDATABASE…).    |
-| `PGSSL`                  | No          | `false`                 | `true` activa SSL hacia PostgreSQL.                                |
+| `PGSSL`                  | No          | `true`                  | `false` desactiva SSL hacia PostgreSQL.                            |
+| `PGSSLCA`                | No          | —                       | CA en PEM; si se define, se verifica el certificado del servidor.  |
 | `CORS_ORIGIN`            | No          | `http://localhost:5173` | Origen(es) permitidos, separados por coma.                         |
 | `JWT_ACCESS_SECRET`      | Sí\*\*      | secreto de desarrollo   | Firma de los access tokens. Mínimo 32 caracteres.                  |
 | `JWT_ACCESS_EXPIRES_IN`  | No          | `15m`                   | Vida del access token (formato de `jsonwebtoken`).                 |
@@ -195,6 +196,11 @@ Después: `npm run db:migrate && npm run db:seed`.
 \* Se usa `DATABASE_URL` **o** el bloque `PG*`.
 \*\* En desarrollo hay un valor por defecto con aviso en consola; **en producción el arranque falla**
 si no se define un secreto propio de al menos 32 caracteres.
+
+> **SSL:** la conexión usa SSL salvo `PGSSL=false`. Los parámetros `sslmode`/`ssl*`
+> de `DATABASE_URL` se descartan al arrancar: `pg` los aplicaba después de la
+> configuración y provocaban `SELF_SIGNED_CERT_IN_CHAIN` con proveedores como
+> Neon o Vercel Postgres. Para verificar el certificado, define `PGSSLCA` con la CA.
 
 Generar un secreto:
 

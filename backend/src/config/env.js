@@ -18,13 +18,67 @@ function toBoolean(value, fallback = false) {
 }
 
 const isProduction = process.env.NODE_ENV === 'production';
-const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+const databaseUrl = process.env.DATABASE_URL;
+
+/**
+ * Parámetros SSL que `pg` interpreta al parsear `DATABASE_URL`.
+ * `pg` aplica la URL *después* de nuestras opciones, así que un
+ * `?sslmode=require` acaba pisando nuestro objeto `ssl` (y en
+ * `pg-connection-string` v2 `require` equivale a `verify-full`, lo que
+ * rompe con certificados self-signed). Los quitamos de la cadena.
+ */
+const SSL_URL_PARAMS = new Set([
+  'sslmode',
+  'ssl',
+  'sslcert',
+  'sslkey',
+  'sslrootcert',
+  'uselibpqcompat',
+]);
+
+function getUrlParam(connectionString, name) {
+  const query = connectionString.split('?')[1];
+  if (!query) return undefined;
+
+  for (const pair of query.split('&')) {
+    const [rawKey, rawValue = ''] = pair.split('=');
+    if (decodeURIComponent(rawKey).toLowerCase() === name) {
+      return decodeURIComponent(rawValue);
+    }
+  }
+  return undefined;
+}
+
+function stripSslParams(connectionString) {
+  const queryIndex = connectionString.indexOf('?');
+  if (queryIndex === -1) return connectionString;
+
+  const base = connectionString.slice(0, queryIndex);
+  const kept = connectionString
+    .slice(queryIndex + 1)
+    .split('&')
+    .filter((pair) => pair && !SSL_URL_PARAMS.has(decodeURIComponent(pair.split('=')[0]).toLowerCase()));
+
+  return kept.length > 0 ? `${base}?${kept.join('&')}` : base;
+}
+
+const urlSslMode = databaseUrl ? getUrlParam(databaseUrl, 'sslmode') : undefined;
+const sslDisabled = process.env.PGSSL === 'false' || urlSslMode === 'disable';
+
+// CA opcional (PEM). Admite "\n" escapados porque en Vercel es incómodo pegar saltos de línea.
+const sslCa = process.env.PGSSLCA ? process.env.PGSSLCA.replace(/\\n/g, '\n') : undefined;
+
+const ssl = sslDisabled
+  ? false
+  : sslCa
+    ? { ca: sslCa, rejectUnauthorized: true }
+    : { rejectUnauthorized: false };
 
 /** Configuración de conexión que entiende `pg.Pool`. */
-const dbConfig = hasDatabaseUrl
+const dbConfig = databaseUrl
   ? {
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      connectionString: stripSslParams(databaseUrl),
+      ssl,
     }
   : {
       host: required('PGHOST'),
@@ -32,7 +86,7 @@ const dbConfig = hasDatabaseUrl
       user: required('PGUSER'),
       password: required('PGPASSWORD'),
       database: required('PGDATABASE'),
-      ssl: { rejectUnauthorized: false },
+      ssl,
     };
 
 const DEV_JWT_SECRET = 'dev-only-insecure-secret-change-me-in-production-32-chars';
@@ -82,4 +136,11 @@ export const env = {
 };
 
 console.log('[cors] CORS_ORIGIN configurado:', env.corsOrigin);
-console.log('[ssl] PGSSL configurado:', process.env.PGSSL, '-> ssl activado:', env.db.ssl !== false);
+console.log(
+  '[db] SSL:',
+  ssl === false
+    ? 'deshabilitado'
+    : sslCa
+      ? 'verificación activada (PGSSLCA)'
+      : 'activado sin verificar el certificado',
+);
