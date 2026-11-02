@@ -27,6 +27,16 @@ export default function ActiveFilters({ filters, onRemove, onClear }) {
             )}
             <span className="filter-chip__group">{filter.groupLabel}:</span>
             {filter.label}
+            {filter.direction === 'asc' && (
+              <span className="filter-option__dir" aria-hidden="true">
+                ↑
+              </span>
+            )}
+            {filter.direction === 'desc' && (
+              <span className="filter-option__dir" aria-hidden="true">
+                ↓
+              </span>
+            )}
             <span className="filter-chip__remove" aria-hidden="true">
               ×
             </span>

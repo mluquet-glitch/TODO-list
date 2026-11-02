@@ -42,6 +42,7 @@ export default function FilteredTaskList({
         <FilterDropdown
           groups={filters.filterGroups}
           activeKeys={filters.activeKeys}
+          activeFilters={filters.activeFilters}
           onToggle={filters.toggleFilter}
         />
       </div>

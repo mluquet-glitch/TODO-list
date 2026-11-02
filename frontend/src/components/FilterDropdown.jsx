@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react';
  * categorías). Cada opción se puede activar y desactivar sin cerrar el panel,
  * de modo que se pueden combinar varios filtros del mismo tipo a la vez.
  */
-export default function FilterDropdown({ groups, activeKeys, onToggle }) {
+export default function FilterDropdown({ groups, activeKeys, activeFilters, onToggle }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   const panelId = useId();
@@ -63,6 +63,10 @@ export default function FilterDropdown({ groups, activeKeys, onToggle }) {
                 <div className="filter-dropdown__options">
                   {group.options.map((option) => {
                     const active = activeKeys.has(`${group.type}:${option.value}`);
+                    const activeFilter = activeFilters.find(
+                      (f) => f.type === group.type && f.value === option.value,
+                    );
+                    const direction = activeFilter?.direction;
 
                     return (
                       <button
@@ -77,6 +81,7 @@ export default function FilterDropdown({ groups, activeKeys, onToggle }) {
                             value: option.value,
                             label: option.label,
                             color: option.color,
+                            direction,
                           })
                         }
                       >
@@ -91,6 +96,16 @@ export default function FilterDropdown({ groups, activeKeys, onToggle }) {
                         {active && (
                           <span className="filter-option__check" aria-hidden="true">
                             ✓
+                          </span>
+                        )}
+                        {active && direction === 'asc' && (
+                          <span className="filter-option__dir" aria-hidden="true">
+                            ↑
+                          </span>
+                        )}
+                        {active && direction === 'desc' && (
+                          <span className="filter-option__dir" aria-hidden="true">
+                            ↓
                           </span>
                         )}
                       </button>

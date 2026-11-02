@@ -39,6 +39,9 @@ function matchesDueDate(task, selected, today) {
  * Estado y lógica de filtros compartidos por la pantalla principal y el detalle.
  * Permite varios valores activos a la vez; dentro del mismo tipo se combinan con
  * OR y entre tipos distintos con AND.
+ *
+ * Filtros de fecha (dueDate, date): ciclo inactivo → sin orden → ascendente → descendente → inactivo.
+ * Otros filtros (estado, prioridad, categoría): ciclo inactivo → incluir → excluir → inactivo.
  */
 export function useTaskFilters(categories) {
   const [search, setSearch] = useState('');
@@ -70,6 +73,11 @@ export function useTaskFilters(categories) {
         label: 'Fecha límite',
         options: DUE_DATE_OPTIONS,
       },
+      {
+        type: 'date',
+        label: 'Fecha',
+        options: [{ value: 'hasDate', label: 'Con fecha' }],
+      },
     ],
     [categories],
   );
@@ -79,37 +87,48 @@ export function useTaskFilters(categories) {
     [activeFilters],
   );
 
-  const selected = useMemo(
-    () =>
-      activeFilters.reduce(
-        (acc, filter) => {
-          acc[filter.type].add(filter.value);
-          return acc;
-        },
-        {
-          status: new Set(),
-          priority: new Set(),
-          category: new Set(),
-          dueDate: new Set(),
-        },
-      ),
-    [activeFilters],
+  const isDateType = useCallback(
+    (type) => type === 'dueDate' || type === 'date',
+    [],
   );
 
-  /** Añade el filtro si no estaba activo; si ya estaba, lo retira. */
+  /** Ciclo de estados según tipo de filtro. */
   const toggleFilter = useCallback((filter) => {
     setActiveFilters((current) => {
-      const exists = current.some(
+      const existingIndex = current.findIndex(
         (item) => item.type === filter.type && item.value === filter.value,
       );
 
-      return exists
-        ? current.filter(
-            (item) => !(item.type === filter.type && item.value === filter.value),
-          )
-        : [...current, filter];
+      if (existingIndex === -1) {
+        return [...current, { ...filter }];
+      }
+
+      const existing = current[existingIndex];
+
+      if (isDateType(filter.type)) {
+        if (!existing.direction) {
+          return current.map((item, i) =>
+            i === existingIndex ? { ...item, direction: 'asc' } : item,
+          );
+        }
+        if (existing.direction === 'asc') {
+          return current.map((item, i) =>
+            i === existingIndex ? { ...item, direction: 'desc' } : item,
+          );
+        }
+      } else {
+        if (!existing.direction) {
+          return current.map((item, i) =>
+            i === existingIndex ? { ...item, direction: 'exclude' } : item,
+          );
+        }
+      }
+
+      return current.filter(
+        (item) => !(item.type === filter.type && item.value === filter.value),
+      );
     });
-  }, []);
+  }, [isDateType]);
 
   const removeFilter = useCallback((filter) => {
     setActiveFilters((current) =>
@@ -151,32 +170,81 @@ export function useTaskFilters(categories) {
       const term = search.trim().toLowerCase();
       const today = todayDateOnly();
 
-      return tasks.filter((task) => {
-        const matchesStatus =
-          selected.status.size === 0 || selected.status.has(task.status);
-        const matchesPriority =
-          selected.priority.size === 0 || selected.priority.has(task.priority);
-        const matchesCategory =
-          selected.category.size === 0 ||
-          (task.categories ?? []).some((category) =>
-            selected.category.has(category.id),
-          );
-        const matchesDate = matchesDueDate(task, selected.dueDate, today);
+      const byType = activeFilters.reduce((acc, f) => {
+        (acc[f.type] = acc[f.type] || []).push(f);
+        return acc;
+      }, {});
+
+      let result = tasks.filter((task) => {
         const matchesSearch =
           !term ||
           task.title.toLowerCase().includes(term) ||
           (task.description ?? '').toLowerCase().includes(term);
 
-        return (
-          matchesStatus &&
-          matchesPriority &&
-          matchesCategory &&
-          matchesDate &&
-          matchesSearch
-        );
+        if (!matchesSearch) return false;
+
+        for (const [type, filters] of Object.entries(byType)) {
+          if (type === 'dueDate') {
+            if (!matchesDueDate(task, new Set(filters.map((f) => f.value)), today))
+              return false;
+          } else if (type === 'date') {
+            const hasDate = Boolean(task.dueDate);
+            if (
+              !filters.some(
+                (f) => (f.value === 'hasDate') === hasDate,
+              )
+            )
+              return false;
+          } else {
+            const includeValues = filters
+              .filter((f) => !f.direction)
+              .map((f) => f.value);
+            const excludeValues = filters
+              .filter((f) => f.direction === 'exclude')
+              .map((f) => f.value);
+
+            if (includeValues.length > 0) {
+              const hasInclude =
+                type === 'category'
+                  ? (task.categories ?? []).some((c) =>
+                      includeValues.includes(c.id),
+                    )
+                  : includeValues.includes(task[type]);
+              if (!hasInclude) return false;
+            }
+
+            if (excludeValues.length > 0) {
+              const hasExclude =
+                type === 'category'
+                  ? (task.categories ?? []).some((c) =>
+                      excludeValues.includes(c.id),
+                    )
+                  : excludeValues.includes(task[type]);
+              if (hasExclude) return false;
+            }
+          }
+        }
+
+        return true;
       });
+
+      const dateFilter = activeFilters.find(
+        (f) => isDateType(f.type) && f.direction,
+      );
+      if (dateFilter) {
+        const dir = dateFilter.direction === 'asc' ? 1 : -1;
+        result.sort((a, b) => {
+          const aDate = a.dueDate ?? '';
+          const bDate = b.dueDate ?? '';
+          if (aDate < bDate) return -dir;
+          if (aDate > bDate) return dir;
+          return 0;
+        });
+      }
+
+      return result;
     },
-    [search, selected],
+    [search, activeFilters, isDateType],
   );
 
   return {

@@ -27,21 +27,30 @@ export default function TaskItem({
       <li className={`task task--${task.status}`}>
         <div className="task__body">
           <div className="task__heading">
-            <h3 className="task__title">
+            <button
+              type="button"
+              className="task__title-wrap"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpen?.(task.id);
+              }}
+            >
               {task.title}
-            </h3>
+            </button>
 
-            <span className={`badge badge--${task.status}`}>
-              {STATUS_LABELS[task.status] ?? task.status}
-            </span>
+            <div className="task__meta">
+              <span className={`badge badge--${task.status}`}>
+                {STATUS_LABELS[task.status] ?? task.status}
+              </span>
 
-            <span className={`badge badge--priority-${task.priority}`}>
-              Prioridad {PRIORITY_LABELS[task.priority] ?? task.priority}
-            </span>
+              <span className={`badge badge--priority-${task.priority}`}>
+                Prioridad {PRIORITY_LABELS[task.priority] ?? task.priority}
+              </span>
 
-            {task.parentTaskId && (
-              <span className="badge badge--subtask">Subtarea de #{task.parentTaskId}</span>
-            )}
+              {task.parentTaskId && (
+                <span className="badge badge--subtask">Subtarea de #{task.parentTaskId}</span>
+              )}
+            </div>
           </div>
 
           {task.description && (
@@ -88,14 +97,57 @@ export default function TaskItem({
             </span>
             {expanded ? 'Ocultar subtareas' : `Ver subtareas (${subtasks.length})`}
           </button>
-        </div>
 
-        <button
-          type="button"
-          className="task__card-button"
-          onClick={() => onOpen?.(task.id)}
-          aria-label={`Abrir detalle de ${task.title}`}
-        />
+          {expanded && (
+            <div className="task__subtasks" id={subtasksId}>
+              {subtasks.length === 0 ? (
+                <p className="task__subtasks-empty">Esta tarea no tiene subtareas.</p>
+              ) : (
+                <ul className="task__subtasks-list">
+                  {subtasks.map((subtask) => (
+                    <li key={subtask.id} className="task__subtask-row">
+                      <button
+                        type="button"
+                        className="task__subtask"
+                        onClick={() => onOpen?.(subtask.id)}
+                        title="Abrir detalle de la subtarea"
+                      >
+                        <span className="task__subtask-title">{subtask.title}</span>
+                        {subtask.description && (
+                          <span className="task__subtask-description">
+                            {subtask.description}
+                          </span>
+                        )}
+                      </button>
+
+                      <label
+                        className="visually-hidden"
+                        htmlFor={`subtask-status-${subtask.id}`}
+                      >
+                        Cambiar estado de {subtask.title}
+                      </label>
+                      <select
+                        id={`subtask-status-${subtask.id}`}
+                        className="task__select task__subtask-select"
+                        value={subtask.status}
+                        disabled={busy}
+                        onChange={(event) =>
+                          onChange(subtask.id, { status: event.target.value })
+                        }
+                      >
+                        {TASK_STATUSES.map(({ value, label }) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="task__actions" style={{ position: 'relative', zIndex: 20 }}>
           <label className="visually-hidden" htmlFor={`status-${task.id}`}>
@@ -124,56 +176,6 @@ export default function TaskItem({
             Eliminar
           </button>
         </div>
-
-      {expanded && (
-        <div className="task__subtasks" id={subtasksId}>
-          {subtasks.length === 0 ? (
-            <p className="task__subtasks-empty">Esta tarea no tiene subtareas.</p>
-          ) : (
-            <ul className="task__subtasks-list">
-              {subtasks.map((subtask) => (
-                <li key={subtask.id} className="task__subtask-row">
-                  <button
-                    type="button"
-                    className="task__subtask"
-                    onClick={() => onOpen?.(subtask.id)}
-                    title="Abrir detalle de la subtarea"
-                  >
-                    <span className="task__subtask-title">{subtask.title}</span>
-                    {subtask.description && (
-                      <span className="task__subtask-description">
-                        {subtask.description}
-                      </span>
-                    )}
-                  </button>
-
-                  <label
-                    className="visually-hidden"
-                    htmlFor={`subtask-status-${subtask.id}`}
-                  >
-                    Cambiar estado de {subtask.title}
-                  </label>
-                  <select
-                    id={`subtask-status-${subtask.id}`}
-                    className="task__select task__subtask-select"
-                    value={subtask.status}
-                    disabled={busy}
-                    onChange={(event) =>
-                      onChange(subtask.id, { status: event.target.value })
-                    }
-                  >
-                    {TASK_STATUSES.map(({ value, label }) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </li>
-  );
+      </li>
+    );
 }
