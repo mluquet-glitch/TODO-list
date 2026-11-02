@@ -105,31 +105,40 @@ export default function CategoryManager({
     }
   }
 
-  return (
-    <section
-      className={`card category-manager${
-        open ? '' : ' collapsible-card--closed'
-      }`}
-    >
-      <div className="collapsible-card__header">
-        <h2 className="card__title collapsible-card__title">
-          <button
-            type="button"
-            className="collapsible-card__toggle"
-            aria-expanded={open}
-            aria-controls={bodyId}
-            onClick={() => setOpen((current) => !current)}
-          >
-            <span className="collapsible-card__chevron" aria-hidden="true">
-              {open ? '▾' : '▸'}
-            </span>
-            Gestionar categorías
-          </button>
-        </h2>
-      </div>
+    return (
+      <section
+        className={`card category-manager${
+          open ? '' : ' collapsible-card--closed'
+        }`}
+        style={{ position: 'relative' }}
+      >
+        <button
+          type="button"
+          className="collapsible-card__toggle-button"
+          onClick={() => setOpen((current) => !current)}
+          aria-label={`Gestionar categorías ${open ? 'cerrar' : 'abrir'}`}
+        />
+
+        <div className="collapsible-card__header">
+          <h2 className="card__title collapsible-card__title">
+            <button
+              type="button"
+              className="collapsible-card__toggle"
+              aria-expanded={open}
+              aria-controls={bodyId}
+              onClick={() => setOpen((current) => !current)}
+            >
+              <span className="collapsible-card__chevron" aria-hidden="true">
+                {open ? '▾' : '▸'}
+              </span>
+              Gestionar categorías
+            </button>
+          </h2>
+        </div>
 
       {open && (
-        <div id={bodyId} className="category-manager__body">
+        <div style={{ position: 'relative', zIndex: 20 }}>
+          <div id={bodyId} className="category-manager__body">
           <div className="field">
             <span className="field__label">Categoría</span>
 
@@ -217,6 +226,7 @@ export default function CategoryManager({
             <Alert type="error" message={localError || error} onClose={clearMessages} />
           </form>
         </div>
+      </div>
       )}
     </section>
   );

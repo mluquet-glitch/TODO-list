@@ -109,8 +109,16 @@ export default function TaskDetail({
       }`}
       onSubmit={handleSubmit}
       noValidate
+      style={{ position: 'relative' }}
     >
-      <div className="task-detail__header">
+      <button
+        type="button"
+        className="collapsible-card__toggle-button"
+        onClick={() => setOpen((current) => !current)}
+        aria-label={`Editar tarea ${open ? 'cerrar' : 'abrir'}`}
+      />
+
+      <div className="collapsible-card__header">
         <div>
           <h2 className="card__title collapsible-card__title">
             <button
@@ -133,7 +141,6 @@ export default function TaskDetail({
               : ' · Tarea principal'}
           </p>
         </div>
-
         <button
           type="button"
           className="button button--danger"

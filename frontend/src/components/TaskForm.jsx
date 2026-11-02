@@ -88,33 +88,42 @@ export default function TaskForm({
     if (created) setForm(initialForm(initialCategoryIds));
   }
 
-  return (
-    <form
-      className={`card task-form${
-        open ? '' : ' collapsible-card--closed'
-      }`}
-      onSubmit={handleSubmit}
-      noValidate
-    >
-      <div className="collapsible-card__header">
-        <h2 className="card__title collapsible-card__title">
-          <button
-            type="button"
-            className="collapsible-card__toggle"
-            aria-expanded={open}
-            aria-controls={bodyId}
-            onClick={() => setOpen((current) => !current)}
-          >
-            <span className="collapsible-card__chevron" aria-hidden="true">
-              {open ? '▾' : '▸'}
-            </span>
-            {heading}
-          </button>
-        </h2>
-      </div>
+    return (
+      <form
+        className={`card task-form${
+          open ? '' : ' collapsible-card--closed'
+        }`}
+        onSubmit={handleSubmit}
+        noValidate
+        style={{ position: 'relative' }}
+      >
+        <button
+          type="button"
+          className="collapsible-card__toggle-button"
+          onClick={() => setOpen((current) => !current)}
+          aria-label={`${heading} ${open ? 'cerrar' : 'abrir'}`}
+        />
+
+        <div className="collapsible-card__header">
+          <h2 className="card__title collapsible-card__title">
+            <button
+              type="button"
+              className="collapsible-card__toggle"
+              aria-expanded={open}
+              aria-controls={bodyId}
+              onClick={() => setOpen((current) => !current)}
+            >
+              <span className="collapsible-card__chevron" aria-hidden="true">
+                {open ? '▾' : '▸'}
+              </span>
+              {heading}
+            </button>
+          </h2>
+        </div>
 
       {open && (
-        <div id={bodyId} className="task-form__body">
+        <div style={{ position: 'relative', zIndex: 20 }}>
+          <div id={bodyId} className="task-form__body">
           <div className="field">
             <label htmlFor="task-title">Título</label>
             <input
@@ -231,6 +240,7 @@ export default function TaskForm({
             {saving ? 'Guardando…' : submitLabel}
           </button>
         </div>
+      </div>
       )}
     </form>
   );

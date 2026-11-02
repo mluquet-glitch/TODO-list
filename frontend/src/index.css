@@ -151,6 +151,13 @@ textarea {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1.25rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.12), 0 2px 4px rgba(16, 24, 40, 0.08);
+  border-color: var(--primary);
 }
 
 .card__title {
@@ -174,10 +181,25 @@ textarea {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .collapsible-card__title {
   margin-bottom: 0;
+}
+
+.collapsible-card__toggle-button {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  opacity: 0;
+  z-index: 10;
+  cursor: pointer;
 }
 
 .collapsible-card__toggle {
@@ -192,6 +214,8 @@ textarea {
   font: inherit;
   text-align: left;
   cursor: pointer;
+  position: relative;
+  z-index: 30;
 }
 
 .collapsible-card__toggle:hover {
@@ -546,6 +570,29 @@ textarea {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.task:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.12), 0 2px 4px rgba(16, 24, 40, 0.08);
+  border-color: var(--primary);
+}
+
+.task__card-button {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  opacity: 0;
+  z-index: 10;
+  cursor: pointer;
 }
 
 .task--pending {
@@ -595,6 +642,7 @@ textarea {
   text-align: left;
   overflow-wrap: anywhere;
   cursor: pointer;
+  display: none;
 }
 
 .task__title-button:hover {

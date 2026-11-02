@@ -229,7 +229,15 @@ export default function TasksPage() {
           className={`card stats${
             summaryOpen ? '' : ' collapsible-card--closed'
           }`}
+          style={{ position: 'relative' }}
         >
+          <button
+            type="button"
+            className="collapsible-card__toggle-button"
+            onClick={() => setSummaryOpen((current) => !current)}
+            aria-label={`Resumen ${summaryOpen ? 'cerrar' : 'abrir'}`}
+          />
+
           <div className="collapsible-card__header">
             <h2 className="card__title collapsible-card__title">
               <button
