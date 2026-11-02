@@ -82,3 +82,4 @@ export const env = {
 };
 
 console.log('[cors] CORS_ORIGIN configurado:', env.corsOrigin);
+console.log('[ssl] PGSSL configurado:', process.env.PGSSL, '-> ssl activado:', env.db.ssl !== false);
