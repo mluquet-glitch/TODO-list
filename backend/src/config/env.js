@@ -24,7 +24,7 @@ const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 const dbConfig = hasDatabaseUrl
   ? {
       connectionString: process.env.DATABASE_URL,
-      ssl: toBoolean(process.env.PGSSL) ? { rejectUnauthorized: false } : false,
+      ssl: { rejectUnauthorized: false },
     }
   : {
       host: required('PGHOST'),
@@ -32,7 +32,7 @@ const dbConfig = hasDatabaseUrl
       user: required('PGUSER'),
       password: required('PGPASSWORD'),
       database: required('PGDATABASE'),
-      ssl: toBoolean(process.env.PGSSL) ? { rejectUnauthorized: false } : false,
+      ssl: { rejectUnauthorized: false },
     };
 
 const DEV_JWT_SECRET = 'dev-only-insecure-secret-change-me-in-production-32-chars';
