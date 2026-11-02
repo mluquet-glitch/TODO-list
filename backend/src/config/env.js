@@ -80,3 +80,5 @@ export const env = {
     maxAgeMs: refreshExpiresDays * 24 * 60 * 60 * 1000,
   },
 };
+
+console.log('[cors] CORS_ORIGIN configurado:', env.corsOrigin);

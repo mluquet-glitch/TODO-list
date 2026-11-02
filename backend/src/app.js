@@ -22,9 +22,11 @@ app.use(helmet());
 
 // CORS restringido al frontend configurado (admite lista separada por comas).
 // `credentials` permite el envío de la cookie httpOnly del refresh token.
+const corsOrigins = env.corsOrigin.split(',').map((origin) => origin.trim());
+console.log('[cors] Aplicando middleware CORS con origen(es):', corsOrigins);
 app.use(
   cors({
-    origin: env.corsOrigin.split(',').map((origin) => origin.trim()),
+    origin: corsOrigins,
     credentials: true,
   }),
 );
