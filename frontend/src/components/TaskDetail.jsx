@@ -152,7 +152,12 @@ export default function TaskDetail({
       </div>
 
       {open && (
-        <div id={bodyId} className="task-detail__body">
+        <div style={{ position: 'relative', zIndex: 20 }}>
+          <div id={bodyId} className="task-detail__body"
+            onClick={(event) => {
+              if (event.currentTarget === event.target) setOpen(false);
+            }}
+          >
           <div className="field">
             <label htmlFor="detail-title">Título</label>
             <input
@@ -268,6 +273,7 @@ export default function TaskDetail({
               </span>
             )}
           </div>
+        </div>
         </div>
       )}
     </form>

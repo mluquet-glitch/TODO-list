@@ -123,7 +123,11 @@ export default function TaskForm({
 
       {open && (
         <div style={{ position: 'relative', zIndex: 20 }}>
-          <div id={bodyId} className="task-form__body">
+          <div id={bodyId} className="task-form__body"
+            onClick={(event) => {
+              if (event.currentTarget === event.target) setOpen(false);
+            }}
+          >
           <div className="field">
             <label htmlFor="task-title">Título</label>
             <input
