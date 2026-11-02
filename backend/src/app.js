@@ -14,6 +14,10 @@ import { errorHandler } from './middlewares/errorHandler.js';
  */
 export const app = express();
 
+// Confía en el proxy de Vercel para leer correctamente las IP del cliente
+// (X-Forwarded-For, Forwarded). Requerido por express-rate-limit detrás de un proxy.
+app.set('trust proxy', true);
+
 // Oculta la cabecera X-Powered-By: Express.
 app.disable('x-powered-by');
 
