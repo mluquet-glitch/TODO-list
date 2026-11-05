@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useMemo } from 'react';
 import ActiveFilters from './ActiveFilters.jsx';
 import FilterDropdown from './FilterDropdown.jsx';
 import TaskList from './TaskList.jsx';
@@ -23,6 +23,21 @@ export default function FilteredTaskList({
   const searchId = useId();
   const visibleTasks = filters.filterTasks(tasks);
 
+  // Tareas pendientes por categoría, para mostrarlas junto a cada filtro.
+  const categoryCounts = useMemo(() => {
+    const counts = new Map();
+
+    for (const task of tasks ?? []) {
+      if (task.status !== 'pending') continue;
+
+      for (const category of task.categories ?? []) {
+        counts.set(category.id, (counts.get(category.id) ?? 0) + 1);
+      }
+    }
+
+    return counts;
+  }, [tasks]);
+
   return (
     <div className="filtered-task-list">
       <div className="toolbar">
@@ -43,6 +58,7 @@ export default function FilteredTaskList({
           groups={filters.filterGroups}
           activeKeys={filters.activeKeys}
           activeFilters={filters.activeFilters}
+          categoryCounts={categoryCounts}
           onToggle={filters.toggleFilter}
         />
       </div>

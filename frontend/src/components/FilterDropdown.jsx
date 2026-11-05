@@ -1,11 +1,25 @@
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 
+/** Color del contador de pendientes según la cantidad. */
+function countTone(count) {
+  if (count === 0) return 'filter-option__count--zero';
+  if (count <= 2) return 'filter-option__count--low';
+  if (count <= 5) return 'filter-option__count--medium';
+  return 'filter-option__count--high';
+}
+
 /**
  * Desplegable con todos los filtros disponibles (estado, prioridad y
  * categorías). Cada opción se puede activar y desactivar sin cerrar el panel,
  * de modo que se pueden combinar varios filtros del mismo tipo a la vez.
  */
-export default function FilterDropdown({ groups, activeKeys, activeFilters, onToggle }) {
+export default function FilterDropdown({
+  groups,
+  activeKeys,
+  activeFilters,
+  categoryCounts = new Map(),
+  onToggle,
+}) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
   const panelId = useId();
@@ -58,6 +72,8 @@ export default function FilterDropdown({ groups, activeKeys, activeFilters, onTo
       const direction = activeFilter?.direction;
       const children = childrenByParent.get(option.value) ?? [];
       const showChildren = active && children.length > 0;
+      const pendingCount = categoryCounts.get(option.value) ?? 0;
+      const isCategory = group.type === 'category';
 
       return (
         <Fragment key={key}>
@@ -86,6 +102,16 @@ export default function FilterDropdown({ groups, activeKeys, activeFilters, onTo
               />
             )}
             {option.label}
+            {isCategory && (
+              <span
+                className={`filter-option__count ${countTone(pendingCount)}`}
+                title={`${pendingCount} tarea${
+                  pendingCount === 1 ? '' : 's'
+                } pendiente${pendingCount === 1 ? '' : 's'}`}
+              >
+                {pendingCount}
+              </span>
+            )}
             {active && (
               <span className="filter-option__check" aria-hidden="true">
                 ✓
