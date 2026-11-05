@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
+import CategorySelection from './CategorySelection.jsx';
 
 const INITIAL_FORM = {
   title: '',
@@ -8,6 +9,7 @@ const INITIAL_FORM = {
   priority: 'medium',
   dueDate: '',
   categoryIds: [],
+  parentTaskId: '',
 };
 
 /** Conserva las categorías iniciales al limpiar el formulario tras crear. */
@@ -30,6 +32,7 @@ export default function TaskForm({
   heading = 'Nueva tarea',
   submitLabel = 'Añadir tarea',
   defaultOpen = false,
+  tasks = [],
 }) {
   const [form, setForm] = useState(() => initialForm(initialCategoryIds));
   const [localError, setLocalError] = useState('');
@@ -65,7 +68,6 @@ export default function TaskForm({
         : [...current.categoryIds, categoryId],
     }));
   }
-
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -83,6 +85,7 @@ export default function TaskForm({
       dueDate: form.dueDate || null,
       categoryIds: form.categoryIds,
       ...(parentTaskId ? { parentTaskId } : {}),
+      ...(form.parentTaskId ? { parentTaskId: Number(form.parentTaskId) } : {}),
     });
 
     if (created) setForm(initialForm(initialCategoryIds));
@@ -168,6 +171,25 @@ export default function TaskForm({
             />
           </div>
 
+          {!parentTaskId && tasks.length > 0 && (
+            <div className="field">
+              <label htmlFor="task-parent-task">Tarea padre (opcional)</label>
+              <select
+                id="task-parent-task"
+                name="parentTaskId"
+                value={form.parentTaskId ?? ''}
+                onChange={handleChange}
+              >
+                <option value="">Ninguna (tarea principal)</option>
+                {tasks.map((task) => (
+                  <option key={task.id} value={task.id}>
+                    #{task.id} · {task.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="form-row">
             <div className="field">
               <label htmlFor="task-status">Estado</label>
@@ -207,32 +229,13 @@ export default function TaskForm({
             {categories.length === 0 ? (
               <p className="muted">No hay categorías disponibles.</p>
             ) : (
-              <div className="checkbox-group">
-                {categories.map((category) => {
-                  const checked = form.categoryIds.includes(category.id);
-
-                  return (
-                    <label
-                      key={category.id}
-                      className={`checkbox-chip ${
-                        checked ? 'checkbox-chip--active' : ''
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleCategory(category.id)}
-                      />
-                      <span
-                        className="checkbox-chip__dot"
-                        style={{ backgroundColor: category.color }}
-                        aria-hidden="true"
-                      />
-                      {category.name}
-                    </label>
-                  );
-                })}
-              </div>
+              <CategorySelection
+                categories={categories}
+                value={form.categoryIds}
+                onChange={(ids) =>
+                  setForm((current) => ({ ...current, categoryIds: ids }))
+                }
+              />
             )}
           </div>
 

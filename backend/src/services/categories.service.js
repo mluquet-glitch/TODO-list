@@ -45,16 +45,31 @@ export const categoriesService = {
       throw ApiError.conflict(`Ya existe una categoría llamada «${data.name}»`);
     }
 
+    if (data.parentId) {
+      const parent = await categoriesRepository.findById(data.parentId);
+      if (!parent) {
+        throw ApiError.badRequest(`No existe una categoría padre con id ${data.parentId}`);
+      }
+      if (parent.id === data.parentId && duplicate?.id === data.parentId) {
+        throw ApiError.badRequest('Una categoría no puede ser su propio padre');
+      }
+    }
+
     return categoriesRepository.create({
       name: data.name,
       slug: await uniqueSlug(slugify(data.name)),
       color: data.color ?? DEFAULT_COLOR,
+      parentId: data.parentId ?? null,
     });
   },
 
   async update(id, data) {
     const current = await categoriesRepository.findById(id);
     if (!current) throw ApiError.notFound(`No existe una categoría con id ${id}`);
+
+    if (data.parentId !== undefined && data.parentId === id) {
+      throw ApiError.badRequest('Una categoría no puede ser su propio padre');
+    }
 
     const name = data.name ?? current.name;
 
@@ -74,6 +89,7 @@ export const categoriesService = {
       name,
       slug,
       color: data.color ?? current.color,
+      parentId: data.parentId !== undefined ? data.parentId : current.parentId,
     });
   },
 

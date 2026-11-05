@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
+import CategorySelection from './CategorySelection.jsx';
 
 function toForm(task) {
   return {
@@ -9,6 +10,7 @@ function toForm(task) {
     priority: task.priority,
     dueDate: task.dueDate ?? '',
     categoryIds: (task.categories ?? []).map((category) => category.id),
+    parentTaskId: task.parentTaskId ?? '',
   };
 }
 
@@ -72,7 +74,6 @@ export default function TaskDetail({
     }));
     setSaved(false);
   }
-
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -89,6 +90,7 @@ export default function TaskDetail({
       priority: form.priority,
       dueDate: form.dueDate || null,
       categoryIds: form.categoryIds,
+      ...(form.parentTaskId ? { parentTaskId: Number(form.parentTaskId) } : { parentTaskId: null }),
     });
 
     if (updated) {
@@ -197,6 +199,28 @@ export default function TaskDetail({
             />
           </div>
 
+          {tasks.length > 0 && (
+            <div className="field">
+              <label htmlFor="detail-parent-task">Tarea padre</label>
+              <select
+                id="detail-parent-task"
+                name="parentTaskId"
+                value={form.parentTaskId ?? ''}
+                onChange={handleChange}
+              >
+                <option value="">Ninguna (tarea principal)</option>
+                {tasks.map((t) => {
+                  if (t.id === task.id) return null;
+                  return (
+                    <option key={t.id} value={t.id}>
+                      #{t.id} · {t.title}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
           <div className="form-row">
             <div className="field">
               <label htmlFor="detail-status">Estado</label>
@@ -236,30 +260,13 @@ export default function TaskDetail({
             {categories.length === 0 ? (
               <p className="muted">No hay categorías disponibles.</p>
             ) : (
-              <div className="checkbox-group">
-                {categories.map((category) => {
-                  const checked = form.categoryIds.includes(category.id);
-
-                  return (
-                    <label
-                      key={category.id}
-                      className={`checkbox-chip ${checked ? 'checkbox-chip--active' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleCategory(category.id)}
-                      />
-                      <span
-                        className="checkbox-chip__dot"
-                        style={{ backgroundColor: category.color }}
-                        aria-hidden="true"
-                      />
-                      {category.name}
-                    </label>
-                  );
-                })}
-              </div>
+              <CategorySelection
+                categories={categories}
+                value={form.categoryIds}
+                onChange={(ids) =>
+                  setForm((current) => ({ ...current, categoryIds: ids }))
+                }
+              />
             )}
           </div>
 

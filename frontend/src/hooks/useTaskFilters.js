@@ -45,7 +45,9 @@ function matchesDueDate(task, selected, today) {
  */
 export function useTaskFilters(categories) {
   const [search, setSearch] = useState('');
-  const [activeFilters, setActiveFilters] = useState([]);
+  const [activeFilters, setActiveFilters] = useState([
+    { type: 'status', groupLabel: 'Estado', value: 'pending', label: 'Pendiente' },
+  ]);
 
   const filterGroups = useMemo(
     () => [

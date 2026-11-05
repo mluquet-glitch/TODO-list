@@ -46,6 +46,17 @@ function parseColor(value, errors) {
   return value.trim().toLowerCase();
 }
 
+function parseParentId(value, errors) {
+  if (value === null || value === undefined || value === '') return null;
+
+  const id = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    errors.push('parentId debe ser un id de categoría válido');
+    return undefined;
+  }
+  return id;
+}
+
 /** Valida POST /api/categories. */
 export function validateCreateCategory(body) {
   assertObject(body);
@@ -53,10 +64,14 @@ export function validateCreateCategory(body) {
   const errors = [];
   const name = parseName(body.name, errors, { required: true });
   const color = parseColor(body.color, errors);
+  const parentId = parseParentId(body.parentId, errors);
 
   if (errors.length > 0) throw ApiError.badRequest('Datos inválidos', errors);
 
-  return color === undefined ? { name } : { name, color };
+  const data = { name };
+  if (color !== undefined) data.color = color;
+  if (parentId !== null) data.parentId = parentId;
+  return data;
 }
 
 /** Valida PATCH /api/categories/:id. */
@@ -66,9 +81,10 @@ export function validateUpdateCategory(body) {
   const errors = [];
   const name = parseName(body.name, errors, { required: false });
   const color = parseColor(body.color, errors);
+  const parentId = parseParentId(body.parentId, errors);
 
-  if (name === undefined && color === undefined) {
-    errors.push('Envía al menos un campo editable: name o color');
+  if (name === undefined && color === undefined && parentId === null) {
+    errors.push('Envía al menos un campo editable: name, color o parentId');
   }
 
   if (errors.length > 0) throw ApiError.badRequest('Datos inválidos', errors);
@@ -76,6 +92,7 @@ export function validateUpdateCategory(body) {
   const data = {};
   if (name !== undefined) data.name = name;
   if (color !== undefined) data.color = color;
+  if (parentId !== null) data.parentId = parentId;
   return data;
 }
 

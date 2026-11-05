@@ -157,6 +157,7 @@ export default function TasksPage() {
               saving={saving}
               onUpdate={updateTask}
               onDelete={handleDeleteTask}
+              tasks={tasks}
             />
 
             <CategoryManager
@@ -213,6 +214,7 @@ export default function TasksPage() {
           categoriesLoading={categoriesLoading}
           onCreate={createTask}
           saving={saving}
+          tasks={tasks}
         />
 
         <CategoryManager
