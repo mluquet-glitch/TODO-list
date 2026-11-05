@@ -12,9 +12,13 @@ const INITIAL_FORM = {
   parentTaskId: '',
 };
 
-/** Conserva las categorías iniciales al limpiar el formulario tras crear. */
-function initialForm(initialCategoryIds) {
-  return { ...INITIAL_FORM, categoryIds: [...initialCategoryIds] };
+/** Conserva las categorías iniciales y la tarea padre al limpiar el formulario. */
+function initialForm(initialCategoryIds, parentTaskId) {
+  return {
+    ...INITIAL_FORM,
+    categoryIds: [...initialCategoryIds],
+    parentTaskId: parentTaskId ? String(parentTaskId) : '',
+  };
 }
 
 /**
@@ -34,7 +38,9 @@ export default function TaskForm({
   defaultOpen = false,
   tasks = [],
 }) {
-  const [form, setForm] = useState(() => initialForm(initialCategoryIds));
+  const [form, setForm] = useState(() =>
+    initialForm(initialCategoryIds, parentTaskId),
+  );
   const [localError, setLocalError] = useState('');
   const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
@@ -77,6 +83,10 @@ export default function TaskForm({
       return;
     }
 
+    const selectedParentId = form.parentTaskId
+      ? Number(form.parentTaskId)
+      : parentTaskId ?? null;
+
     const created = await onCreate({
       title,
       description: form.description.trim() || null,
@@ -84,11 +94,10 @@ export default function TaskForm({
       priority: form.priority,
       dueDate: form.dueDate || null,
       categoryIds: form.categoryIds,
-      ...(parentTaskId ? { parentTaskId } : {}),
-      ...(form.parentTaskId ? { parentTaskId: Number(form.parentTaskId) } : {}),
+      ...(selectedParentId ? { parentTaskId: selectedParentId } : {}),
     });
 
-    if (created) setForm(initialForm(initialCategoryIds));
+    if (created) setForm(initialForm(initialCategoryIds, parentTaskId));
   }
 
     return (
@@ -171,16 +180,20 @@ export default function TaskForm({
             />
           </div>
 
-          {!parentTaskId && tasks.length > 0 && (
+          {tasks.length > 0 && (
             <div className="field">
-              <label htmlFor="task-parent-task">Tarea padre (opcional)</label>
+              <label htmlFor="task-parent-task">
+                Tarea padre{parentTaskId ? '' : ' (opcional)'}
+              </label>
               <select
                 id="task-parent-task"
                 name="parentTaskId"
                 value={form.parentTaskId ?? ''}
                 onChange={handleChange}
               >
-                <option value="">Ninguna (tarea principal)</option>
+                {!parentTaskId && (
+                  <option value="">Ninguna (tarea principal)</option>
+                )}
                 {tasks.map((task) => (
                   <option key={task.id} value={task.id}>
                     #{task.id} · {task.title}

@@ -68,6 +68,7 @@ export function useTaskFilters(categories) {
           value: category.id,
           label: category.name,
           color: category.color,
+          parentId: category.parentId ?? null,
         })),
       },
       {

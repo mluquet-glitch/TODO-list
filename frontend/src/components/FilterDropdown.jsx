@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useRef, useState } from 'react';
 
 /**
  * Desplegable con todos los filtros disponibles (estado, prioridad y
@@ -29,6 +29,90 @@ export default function FilterDropdown({ groups, activeKeys, activeFilters, onTo
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [open]);
+
+  /**
+   * Las opciones con hijas (categorías) solo muestran sus hijas cuando la
+   * opción padre está activa. Las hijas se insertan después del padre en la
+   * misma lista y con un estilo distinto.
+   */
+  function renderGroupOptions(group) {
+    const options = group.options ?? [];
+    const byValue = new Map(options.map((option) => [option.value, option]));
+    const childrenByParent = new Map();
+
+    for (const option of options) {
+      const hasParent =
+        option.parentId != null && byValue.has(option.parentId);
+      const parentValue = hasParent ? option.parentId : null;
+      const list = childrenByParent.get(parentValue) ?? [];
+      list.push(option);
+      childrenByParent.set(parentValue, list);
+    }
+
+    function renderOption(option, depth) {
+      const key = `${group.type}:${option.value}`;
+      const active = activeKeys.has(key);
+      const activeFilter = activeFilters.find(
+        (f) => f.type === group.type && f.value === option.value,
+      );
+      const direction = activeFilter?.direction;
+      const children = childrenByParent.get(option.value) ?? [];
+      const showChildren = active && children.length > 0;
+
+      return (
+        <Fragment key={key}>
+          <button
+            type="button"
+            className={`filter-option ${active ? 'filter-option--active' : ''} ${
+              depth > 0 ? 'filter-option--sub' : ''
+            }`}
+            aria-pressed={active}
+            onClick={() =>
+              onToggle({
+                type: group.type,
+                groupLabel: group.label,
+                value: option.value,
+                label: option.label,
+                color: option.color,
+                direction,
+              })
+            }
+          >
+            {option.color && (
+              <span
+                className="filter-option__dot"
+                style={{ backgroundColor: option.color }}
+                aria-hidden="true"
+              />
+            )}
+            {option.label}
+            {active && (
+              <span className="filter-option__check" aria-hidden="true">
+                ✓
+              </span>
+            )}
+            {active && direction === 'asc' && (
+              <span className="filter-option__dir" aria-hidden="true">
+                ↑
+              </span>
+            )}
+            {active && direction === 'desc' && (
+              <span className="filter-option__dir" aria-hidden="true">
+                ↓
+              </span>
+            )}
+          </button>
+
+          {showChildren &&
+            children.map((child) => renderOption(child, depth + 1))}
+        </Fragment>
+      );
+    }
+
+    return (childrenByParent.get(null) ?? []).map((option) =>
+      renderOption(option, 0),
+    );
+  }
 
   return (
     <div className="filter-dropdown" ref={containerRef}>
@@ -61,56 +145,7 @@ export default function FilterDropdown({ groups, activeKeys, activeFilters, onTo
               <div className="filter-dropdown__group" key={group.type}>
                 <p className="filter-dropdown__title">{group.label}</p>
                 <div className="filter-dropdown__options">
-                  {group.options.map((option) => {
-                    const active = activeKeys.has(`${group.type}:${option.value}`);
-                    const activeFilter = activeFilters.find(
-                      (f) => f.type === group.type && f.value === option.value,
-                    );
-                    const direction = activeFilter?.direction;
-
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={`filter-option ${active ? 'filter-option--active' : ''}`}
-                        aria-pressed={active}
-                        onClick={() =>
-                          onToggle({
-                            type: group.type,
-                            groupLabel: group.label,
-                            value: option.value,
-                            label: option.label,
-                            color: option.color,
-                            direction,
-                          })
-                        }
-                      >
-                        {option.color && (
-                          <span
-                            className="filter-option__dot"
-                            style={{ backgroundColor: option.color }}
-                            aria-hidden="true"
-                          />
-                        )}
-                        {option.label}
-                        {active && (
-                          <span className="filter-option__check" aria-hidden="true">
-                            ✓
-                          </span>
-                        )}
-                        {active && direction === 'asc' && (
-                          <span className="filter-option__dir" aria-hidden="true">
-                            ↑
-                          </span>
-                        )}
-                        {active && direction === 'desc' && (
-                          <span className="filter-option__dir" aria-hidden="true">
-                            ↓
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                  {renderGroupOptions(group)}
                 </div>
               </div>
             ))

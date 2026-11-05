@@ -10,7 +10,8 @@ function toForm(task) {
     priority: task.priority,
     dueDate: task.dueDate ?? '',
     categoryIds: (task.categories ?? []).map((category) => category.id),
-    parentTaskId: task.parentTaskId ?? '',
+    parentTaskId:
+      task.parentTaskId != null ? String(task.parentTaskId) : '',
   };
 }
 
@@ -25,6 +26,7 @@ export default function TaskDetail({
   saving,
   onUpdate,
   onDelete,
+  tasks = [],
   defaultOpen = false,
 }) {
   const [form, setForm] = useState(() => toForm(task));
