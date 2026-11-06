@@ -23,11 +23,11 @@ export default function FilteredTaskList({
   const searchId = useId();
   const visibleTasks = filters.filterTasks(tasks);
 
-  // Tareas pendientes por categoría, para mostrarlas junto a cada filtro.
+  // Tareas pendientes por categoría, contando todas las tareas (no solo la lista actual).
   const categoryCounts = useMemo(() => {
     const counts = new Map();
 
-    for (const task of tasks ?? []) {
+    for (const task of allTasks ?? []) {
       if (task.status !== 'pending') continue;
 
       for (const category of task.categories ?? []) {
@@ -36,7 +36,7 @@ export default function FilteredTaskList({
     }
 
     return counts;
-  }, [tasks]);
+  }, [allTasks]);
 
   return (
     <div className="filtered-task-list">

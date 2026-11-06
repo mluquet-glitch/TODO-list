@@ -46,7 +46,7 @@ export default function TaskList({
         <TaskItem
           key={task.id}
           task={task}
-          subtasks={childrenByParent.get(task.id) ?? []}
+          childrenByParent={childrenByParent}
           onChange={onChange}
           onDelete={onDelete}
           onOpen={onOpen}
