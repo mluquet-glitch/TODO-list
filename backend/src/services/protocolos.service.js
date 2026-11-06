@@ -1,4 +1,5 @@
 import { protocolosRepository } from '../repositories/protocolos.repository.js';
+import { emocionesService } from './emociones.service.js';
 import { ApiError } from '../utils/ApiError.js';
 
 async function getProtocoloOrThrow(id) {
@@ -9,10 +10,59 @@ async function getProtocoloOrThrow(id) {
   return protocolo;
 }
 
-/** Reglas de negocio de protocolos y pasos. */
+/**
+ * Normaliza el filtro `activo` de la query.
+ * Por defecto solo se listan activos; `all`/`todos` devuelve ambos estados.
+ */
+function normalizeActivoFilter(value) {
+  const raw = Array.isArray(value) ? value[0] : value;
+
+  if (raw === undefined || raw === null || raw === '') return true;
+  if (typeof raw === 'boolean') return raw;
+
+  const normalized = String(raw).trim().toLowerCase();
+
+  if (normalized === 'true' || normalized === '1') return true;
+  if (normalized === 'false' || normalized === '0') return false;
+  if (normalized === 'all' || normalized === 'todos') return null;
+
+  throw ApiError.badRequest(
+    'activo debe ser true, false, all o todos',
+  );
+}
+
+/**
+ * Acepta `?emocionIds=1,2` o varios parámetros repetidos y devuelve ids únicos.
+ */
+function normalizeEmocionIdsFilter(value) {
+  if (value === undefined || value === null || value === '') return [];
+
+  const raw = Array.isArray(value) ? value.join(',') : String(value);
+  const parts = raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
+
+  const ids = parts.map((part) => {
+    const id = Number(part);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      throw ApiError.badRequest(
+        'emocionIds debe contener ids de emoción enteros positivos',
+      );
+    }
+    return id;
+  });
+
+  return [...new Set(ids)];
+}
+
+/** Reglas de negocio de protocolos, pasos y emociones vinculadas. */
 export const protocolosService = {
-  list() {
-    return protocolosRepository.findAll();
+  list({ activo, emocionIds } = {}) {
+    return protocolosRepository.findAll({
+      activo: normalizeActivoFilter(activo),
+      emocionIds: normalizeEmocionIdsFilter(emocionIds),
+    });
   },
 
   getById(id) {
@@ -20,23 +70,30 @@ export const protocolosService = {
   },
 
   async create(data) {
-    const created = await protocolosRepository.create(data);
-    return getProtocoloOrThrow(created.id);
+    await emocionesService.assertExist(data.emocionIds ?? []);
+    return protocolosRepository.create(data);
   },
 
   async update(id, data) {
     const current = await getProtocoloOrThrow(id);
+
+    if (data.emocionIds !== undefined) {
+      await emocionesService.assertExist(data.emocionIds);
+    }
+
     const updated = await protocolosRepository.update(id, {
       nombre: data.nombre ?? current.nombre,
       disparador:
         data.disparador !== undefined ? data.disparador : current.disparador,
+      activo: data.activo !== undefined ? data.activo : current.activo,
+      ...(data.emocionIds !== undefined ? { emocionIds: data.emocionIds } : {}),
     });
 
     if (!updated) {
       throw ApiError.notFound(`No existe un protocolo con id ${id}`);
     }
 
-    return getProtocoloOrThrow(id);
+    return updated;
   },
 
   async remove(id) {

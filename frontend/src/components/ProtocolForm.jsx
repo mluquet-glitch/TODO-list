@@ -1,8 +1,11 @@
 import { useEffect, useId, useState } from 'react';
+import EmotionButtons from './EmotionButtons.jsx';
 
 /** Formulario de alta y edición de un protocolo. */
 export default function ProtocolForm({
   editingProtocol = null,
+  emociones = [],
+  emocionesLoading = false,
   saving = false,
   onCreate,
   onUpdate,
@@ -10,19 +13,41 @@ export default function ProtocolForm({
 }) {
   const [nombre, setNombre] = useState('');
   const [disparador, setDisparador] = useState('');
+  const [activo, setActivo] = useState(true);
+  const [emocionIds, setEmocionIds] = useState([]);
   const [localError, setLocalError] = useState('');
   const inputId = useId();
   const disparadorId = useId();
+  const activoId = useId();
 
   useEffect(() => {
     setNombre(editingProtocol?.nombre ?? '');
     setDisparador(editingProtocol?.disparador ?? '');
+    setActivo(editingProtocol?.activo ?? true);
+    setEmocionIds(
+      editingProtocol?.emociones?.map((emocion) => emocion.id) ?? [],
+    );
     setLocalError('');
-  }, [
-    editingProtocol?.id,
-    editingProtocol?.nombre,
-    editingProtocol?.disparador,
-  ]);
+  }, [editingProtocol]);
+
+  // Si una emoción se elimina del catálogo, se quita de la selección local.
+  useEffect(() => {
+    if (emocionesLoading) return;
+
+    const validIds = new Set(emociones.map((emocion) => emocion.id));
+    setEmocionIds((current) => {
+      const next = current.filter((id) => validIds.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [emociones, emocionesLoading]);
+
+  function toggleEmocion(id) {
+    setEmocionIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -39,15 +64,24 @@ export default function ProtocolForm({
       const updated = await onUpdate(editingProtocol.id, {
         nombre: value,
         disparador: trigger,
+        activo,
+        emocionIds,
       });
       if (updated) onCancelEdit?.();
       return;
     }
 
-    const created = await onCreate({ nombre: value, disparador: trigger });
+    const created = await onCreate({
+      nombre: value,
+      disparador: trigger,
+      activo,
+      emocionIds,
+    });
     if (created) {
       setNombre('');
       setDisparador('');
+      setActivo(true);
+      setEmocionIds([]);
     }
   }
 
@@ -86,6 +120,35 @@ export default function ProtocolForm({
           placeholder="Evento o condición que inicia el protocolo"
           autoComplete="off"
         />
+      </div>
+
+      <label className="protocol-form__check" htmlFor={activoId}>
+        <input
+          id={activoId}
+          type="checkbox"
+          checked={activo}
+          onChange={(event) => setActivo(event.target.checked)}
+        />
+        <span>Activo</span>
+      </label>
+
+      <div className="field">
+        <span className="field__label">Emociones</span>
+        <EmotionButtons
+          emociones={emociones}
+          selectedIds={emocionIds}
+          onToggle={toggleEmocion}
+          disabled={saving || emocionesLoading}
+          emptyText={
+            emocionesLoading
+              ? 'Cargando emociones…'
+              : 'Todavía no hay emociones. Créalas en el gestor del sidebar.'
+          }
+          ariaLabel="Seleccionar emociones del protocolo"
+        />
+        <p className="muted protocol-form__hint">
+          Haz clic en una emoción para vincularla o desvincularla.
+        </p>
       </div>
 
       <div className="protocol-form__actions">

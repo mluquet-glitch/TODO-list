@@ -88,14 +88,35 @@ export default function ProtocolDetail({
       <header className="protocol-detail__header">
         <div>
           <h2 className="protocol-detail__title">{protocolo.nombre}</h2>
-          <p className="muted protocol-detail__meta">
-            {protocolo.pasos.length}{' '}
-            {protocolo.pasos.length === 1 ? 'paso' : 'pasos'}
-          </p>
+          <div className="protocol-detail__meta">
+            <span
+              className={`badge ${
+                protocolo.activo ? 'badge--done' : 'badge--pending'
+              }`}
+            >
+              {protocolo.activo ? 'Activo' : 'Inactivo'}
+            </span>
+            <span className="muted">
+              {protocolo.pasos.length}{' '}
+              {protocolo.pasos.length === 1 ? 'paso' : 'pasos'}
+            </span>
+          </div>
           {protocolo.disparador && (
             <p className="protocol-detail__trigger">
               <span>Disparador:</span> {protocolo.disparador}
             </p>
+          )}
+          {protocolo.emociones?.length > 0 && (
+            <div className="protocol-detail__emotions">
+              <span className="protocol-detail__emotions-label">
+                Emociones:
+              </span>
+              {protocolo.emociones.map((emocion) => (
+                <span key={emocion.id} className="badge badge--emotion">
+                  {emocion.nombre}
+                </span>
+              ))}
+            </div>
           )}
         </div>
 

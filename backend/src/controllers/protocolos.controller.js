@@ -12,7 +12,10 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 /** Capa HTTP de protocolos y sus pasos. */
 export const protocolosController = {
   list: asyncHandler(async (req, res) => {
-    const protocolos = await protocolosService.list();
+    const protocolos = await protocolosService.list({
+      activo: req.query.activo,
+      emocionIds: req.query.emocionIds,
+    });
     res.json({ data: protocolos });
   }),
 

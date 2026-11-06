@@ -23,6 +23,18 @@ export default function ExecutionDetail({
               <span>Disparador:</span> {protocolo.disparador}
             </p>
           )}
+          {protocolo.emociones?.length > 0 && (
+            <div className="protocol-detail__emotions">
+              <span className="protocol-detail__emotions-label">
+                Emociones:
+              </span>
+              {protocolo.emociones.map((emocion) => (
+                <span key={emocion.id} className="badge badge--emotion">
+                  {emocion.nombre}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="execution-detail__actions">

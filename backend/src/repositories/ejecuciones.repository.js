@@ -7,6 +7,7 @@ const EJECUCION_SELECT = `
     e.fecha_hora,
     p.nombre AS protocolo_nombre,
     p.disparador AS protocolo_disparador,
+    p.activo AS protocolo_activo,
     COALESCE(
       (
         SELECT json_agg(
@@ -22,7 +23,22 @@ const EJECUCION_SELECT = `
         WHERE pa.protocolo_id = p.id
       ),
       '[]'::json
-    ) AS pasos
+    ) AS pasos,
+    COALESCE(
+      (
+        SELECT json_agg(
+          json_build_object(
+            'id', em.id,
+            'nombre', em.nombre
+          )
+          ORDER BY LOWER(em.nombre) ASC, em.id ASC
+        )
+        FROM emociones em
+        INNER JOIN protocolo_emociones pe ON pe.emocion_id = em.id
+        WHERE pe.protocolo_id = p.id
+      ),
+      '[]'::json
+    ) AS emociones
   FROM ejecuciones e
   JOIN protocolos p ON p.id = e.protocolo_id
 `;
@@ -36,7 +52,9 @@ function mapRow(row) {
       id: Number(row.protocolo_id),
       nombre: row.protocolo_nombre,
       disparador: row.protocolo_disparador,
+      activo: row.protocolo_activo,
       pasos: row.pasos ?? [],
+      emociones: row.emociones ?? [],
     },
   };
 }

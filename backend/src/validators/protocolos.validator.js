@@ -16,6 +16,14 @@ function normalizeString(value) {
   return trimmed === '' ? null : trimmed;
 }
 
+/** Convierte un id positivo (número o cadena numérica) o devuelve undefined. */
+function normalizeId(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const id = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isSafeInteger(id) || id <= 0) return undefined;
+  return id;
+}
+
 function parseNombre(value, errors, { required }) {
   if (value === undefined) {
     if (required) errors.push('nombre es obligatorio');
@@ -78,6 +86,44 @@ function parseDisparador(value, errors) {
   return disparador;
 }
 
+function parseActivo(value, errors) {
+  if (value === undefined) return undefined;
+
+  if (typeof value !== 'boolean') {
+    errors.push('activo debe ser true o false');
+    return undefined;
+  }
+
+  return value;
+}
+
+function parseEmocionIds(value, errors) {
+  if (value === undefined) return undefined;
+  if (value === null) return [];
+
+  if (!Array.isArray(value)) {
+    errors.push('emocionIds debe ser un arreglo de ids');
+    return undefined;
+  }
+
+  if (value.length > 50) {
+    errors.push('emocionIds no puede contener más de 50 emociones');
+    return undefined;
+  }
+
+  const ids = [];
+  for (const item of value) {
+    const id = normalizeId(item);
+    if (typeof id !== 'number' || id <= 0) {
+      errors.push('emocionIds debe contener ids de emoción válidos');
+      return undefined;
+    }
+    if (!ids.includes(id)) ids.push(id);
+  }
+
+  return ids;
+}
+
 /** Valida POST /api/protocolos. */
 export function validateCreateProtocolo(body) {
   assertObject(body);
@@ -85,19 +131,29 @@ export function validateCreateProtocolo(body) {
   const errors = [];
   const nombre = parseNombre(body.nombre, errors, { required: true });
   const disparador = parseDisparador(body.disparador, errors);
+  const activo = parseActivo(body.activo, errors);
+  const emocionIds = parseEmocionIds(body.emocionIds, errors);
 
   if (errors.length > 0) throw ApiError.badRequest('Datos inválidos', errors);
 
-  return { nombre, disparador: disparador ?? null };
+  const data = { nombre, disparador: disparador ?? null };
+  if (activo !== undefined) data.activo = activo;
+  if (emocionIds !== undefined) data.emocionIds = emocionIds;
+  return data;
 }
 
 /** Valida PATCH /api/protocolos/:id. */
 export function validateUpdateProtocolo(body) {
   assertObject(body);
 
-  if (!Object.hasOwn(body, 'nombre') && !Object.hasOwn(body, 'disparador')) {
+  if (
+    !Object.hasOwn(body, 'nombre') &&
+    !Object.hasOwn(body, 'disparador') &&
+    !Object.hasOwn(body, 'activo') &&
+    !Object.hasOwn(body, 'emocionIds')
+  ) {
     throw ApiError.badRequest(
-      'Envía al menos un campo editable: nombre o disparador',
+      'Envía al menos un campo editable: nombre, disparador, activo o emocionIds',
     );
   }
 
@@ -112,6 +168,16 @@ export function validateUpdateProtocolo(body) {
   if (Object.hasOwn(body, 'disparador')) {
     const disparador = parseDisparador(body.disparador, errors);
     if (disparador !== undefined) data.disparador = disparador;
+  }
+
+  if (Object.hasOwn(body, 'activo')) {
+    const activo = parseActivo(body.activo, errors);
+    if (activo !== undefined) data.activo = activo;
+  }
+
+  if (Object.hasOwn(body, 'emocionIds')) {
+    const emocionIds = parseEmocionIds(body.emocionIds, errors);
+    if (emocionIds !== undefined) data.emocionIds = emocionIds;
   }
 
   if (errors.length > 0) throw ApiError.badRequest('Datos inválidos', errors);

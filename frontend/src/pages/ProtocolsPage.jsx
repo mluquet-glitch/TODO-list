@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import Alert from '../components/Alert.jsx';
+import EmotionManager from '../components/EmotionManager.jsx';
 import ExecutionDetail from '../components/ExecutionDetail.jsx';
 import ExecutionList from '../components/ExecutionList.jsx';
 import ProtocolDetail from '../components/ProtocolDetail.jsx';
 import ProtocolForm from '../components/ProtocolForm.jsx';
 import ProtocolList from '../components/ProtocolList.jsx';
 import { useEjecuciones } from '../hooks/useEjecuciones.js';
+import { useEmociones } from '../hooks/useEmociones.js';
 import { useProtocolos } from '../hooks/useProtocolos.js';
 
 /** Pantalla de protocolos: CRUD en el sidebar y detalle en el área central. */
 export default function ProtocolsPage() {
   const {
     protocolos,
+    activoFilter,
+    setActivoFilter,
+    emocionFilterIds,
+    toggleEmocionFilter,
+    clearEmocionFilter,
+    removeEmocionFilter,
     loading: protocolosLoading,
     saving: protocolosSaving,
     error: protocolosError,
@@ -24,6 +32,17 @@ export default function ProtocolsPage() {
     refresh: refreshProtocolos,
     clearError: clearProtocolosError,
   } = useProtocolos();
+
+  const {
+    emociones,
+    loading: emocionesLoading,
+    saving: emocionesSaving,
+    error: emocionesError,
+    createEmocion,
+    updateEmocion,
+    removeEmocion,
+    clearError: clearEmocionesError,
+  } = useEmociones();
 
   const {
     ejecuciones,
@@ -50,7 +69,8 @@ export default function ProtocolsPage() {
     [ejecuciones, selectedExecutionId],
   );
 
-  // Si el protocolo abierto se elimina, volvemos a la vista vacía.
+  // Si el protocolo abierto se elimina o deja de coincidir con el filtro,
+  // volvemos a la vista vacía.
   useEffect(() => {
     if (
       selectedProtocolId !== null &&
@@ -99,7 +119,7 @@ export default function ProtocolsPage() {
   async function handleDeleteProtocol(protocolo) {
     if (
       !window.confirm(
-        `¿Eliminar el protocolo “${protocolo.nombre}”? También se eliminarán sus pasos y ejecuciones.`,
+        `¿Eliminar el protocolo "${protocolo.nombre}"? También se eliminarán sus pasos y ejecuciones.`,
       )
     ) {
       return false;
@@ -134,7 +154,7 @@ export default function ProtocolsPage() {
   async function handleDeleteExecution(ejecucion) {
     if (
       !window.confirm(
-        `¿Eliminar la ejecución de “${ejecucion.protocolo.nombre}”?`,
+        `¿Eliminar la ejecución de "${ejecucion.protocolo.nombre}"?`,
       )
     ) {
       return false;
@@ -150,23 +170,73 @@ export default function ProtocolsPage() {
     return deleted;
   }
 
-  const busy = protocolosSaving || ejecucionesSaving;
+  async function handleCreateEmocion(payload) {
+    return createEmocion(payload);
+  }
+
+  async function handleUpdateEmocion(id, changes) {
+    const updated = await updateEmocion(id, changes);
+
+    if (updated) {
+      await refreshProtocolos();
+    }
+
+    return updated;
+  }
+
+  async function handleDeleteEmocion(id) {
+    const deleted = await removeEmocion(id);
+
+    if (deleted) {
+      const wasFiltered = emocionFilterIds.includes(id);
+      removeEmocionFilter(id);
+
+      // Si el filtro incluía la emoción, el cambio de filtro ya recarga la lista.
+      if (!wasFiltered) {
+        await refreshProtocolos();
+      }
+    }
+
+    return deleted;
+  }
+
+  const busy = protocolosSaving || ejecucionesSaving || emocionesSaving;
 
   return (
     <div className="protocols-page">
       <aside className="protocols-page__sidebar">
         <ProtocolForm
           editingProtocol={editingProtocol}
+          emociones={emociones}
+          emocionesLoading={emocionesLoading}
           saving={busy}
           onCreate={handleCreateProtocol}
           onUpdate={handleUpdateProtocol}
           onCancelEdit={() => setEditingProtocol(null)}
         />
 
+        <EmotionManager
+          emociones={emociones}
+          loading={emocionesLoading}
+          saving={emocionesSaving}
+          error={emocionesError}
+          onCreate={handleCreateEmocion}
+          onUpdate={handleUpdateEmocion}
+          onDelete={handleDeleteEmocion}
+          onClearError={clearEmocionesError}
+        />
+
         <ProtocolList
           protocolos={protocolos}
           selectedId={selectedProtocolId}
           loading={protocolosLoading}
+          activoFilter={activoFilter}
+          emociones={emociones}
+          emocionesLoading={emocionesLoading}
+          emocionFilterIds={emocionFilterIds}
+          onFilterChange={setActivoFilter}
+          onToggleEmocion={toggleEmocionFilter}
+          onClearEmociones={clearEmocionFilter}
           onSelect={selectProtocol}
           onEdit={(protocolo) => setEditingProtocol(protocolo)}
         />

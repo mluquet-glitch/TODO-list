@@ -10,6 +10,11 @@ DROP TABLE IF EXISTS task_categories CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS ejecuciones CASCADE;
+DROP TABLE IF EXISTS pasos CASCADE;
+DROP TABLE IF EXISTS protocolo_emociones CASCADE;
+DROP TABLE IF EXISTS emociones CASCADE;
+DROP TABLE IF EXISTS protocolos CASCADE;
 -- -----------------------------------------------------------------------------
 -- Usuarios
 -- -----------------------------------------------------------------------------
@@ -167,7 +172,8 @@ CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens (expires_at);
 CREATE TABLE protocolos (
     id BIGSERIAL PRIMARY KEY,
     nombre VARCHAR(255) NOT NULL,
-    disparador VARCHAR(255)
+    disparador VARCHAR(255),
+    activo BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE pasos (
@@ -196,3 +202,35 @@ CREATE TABLE ejecuciones (
 CREATE INDEX idx_pasos_protocolo ON pasos (protocolo_id);
 CREATE INDEX idx_ejecuciones_protocolo ON ejecuciones (protocolo_id);
 CREATE INDEX idx_ejecuciones_fecha_hora ON ejecuciones (fecha_hora DESC);
+
+-- -----------------------------------------------------------------------------
+-- Emociones y relación N:M protocolos – emociones
+-- Un protocolo puede tener varias emociones y una emoción varios protocolos.
+-- -----------------------------------------------------------------------------
+CREATE TABLE emociones (
+    id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+
+    CONSTRAINT uq_emociones_nombre UNIQUE (nombre)
+);
+
+CREATE TABLE protocolo_emociones (
+    protocolo_id BIGINT NOT NULL,
+    emocion_id BIGINT NOT NULL,
+
+    PRIMARY KEY (protocolo_id, emocion_id),
+
+    CONSTRAINT fk_protocolo_emociones_protocolo
+        FOREIGN KEY (protocolo_id)
+        REFERENCES protocolos(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_protocolo_emociones_emocion
+        FOREIGN KEY (emocion_id)
+        REFERENCES emociones(id)
+        ON DELETE CASCADE
+);
+
+-- La PK cubre las búsquedas por protocolo; este índice cubre las de emoción.
+CREATE INDEX idx_protocolo_emociones_emocion
+    ON protocolo_emociones (emocion_id);

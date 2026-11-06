@@ -4,8 +4,22 @@ const RESOURCE = '/protocolos';
 
 /** Acceso a los endpoints de protocolos y sus pasos. */
 export const protocolosApi = {
-  async list() {
-    const payload = await api.get(RESOURCE);
+  async list({ activo, emocionIds } = {}) {
+    const params = new URLSearchParams();
+    if (activo !== undefined) params.set('activo', activo);
+
+    if (emocionIds !== undefined) {
+      const value = Array.isArray(emocionIds)
+        ? emocionIds.join(',')
+        : String(emocionIds);
+      if (value) params.set('emocionIds', value);
+    }
+
+    const queryString = params.toString();
+
+    const payload = await api.get(
+      `${RESOURCE}${queryString ? `?${queryString}` : ''}`,
+    );
     return payload.data;
   },
 
