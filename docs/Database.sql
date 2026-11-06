@@ -159,3 +159,40 @@ CREATE TABLE refresh_tokens (
 
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens (user_id);
 CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens (expires_at);
+
+-- -----------------------------------------------------------------------------
+-- Protocolos, pasos y ejecuciones
+-- Un protocolo tiene muchos pasos y muchas ejecuciones.
+-- -----------------------------------------------------------------------------
+CREATE TABLE protocolos (
+    id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    disparador VARCHAR(255)
+);
+
+CREATE TABLE pasos (
+    id BIGSERIAL PRIMARY KEY,
+    protocolo_id BIGINT NOT NULL,
+    nombre VARCHAR(255) NOT NULL,
+    descripcion TEXT,
+
+    CONSTRAINT fk_pasos_protocolo
+        FOREIGN KEY (protocolo_id)
+        REFERENCES protocolos(id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE ejecuciones (
+    id BIGSERIAL PRIMARY KEY,
+    protocolo_id BIGINT NOT NULL,
+    fecha_hora TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_ejecuciones_protocolo
+        FOREIGN KEY (protocolo_id)
+        REFERENCES protocolos(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_pasos_protocolo ON pasos (protocolo_id);
+CREATE INDEX idx_ejecuciones_protocolo ON ejecuciones (protocolo_id);
+CREATE INDEX idx_ejecuciones_fecha_hora ON ejecuciones (fecha_hora DESC);

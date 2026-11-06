@@ -1,9 +1,17 @@
+import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import ProtocolsPage from './pages/ProtocolsPage.jsx';
 import TasksPage from './pages/TasksPage.jsx';
+
+const VIEWS = {
+  tasks: 'Tareas',
+  protocols: 'Protocolos',
+};
 
 function AppContent() {
   const { user, initializing, logout } = useAuth();
+  const [activeView, setActiveView] = useState('tasks');
 
   return (
     <div className="app">
@@ -28,11 +36,33 @@ function AppContent() {
         )}
       </header>
 
+      {user && (
+        <nav className="app-nav" aria-label="Secciones principales">
+          {Object.entries(VIEWS).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={`app-nav__item${
+                activeView === value ? ' app-nav__item--active' : ''
+              }`}
+              onClick={() => setActiveView(value)}
+              aria-current={activeView === value ? 'page' : undefined}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+
       <main className="app__main">
         {initializing ? (
           <p className="muted">Comprobando sesión…</p>
         ) : user ? (
-          <TasksPage />
+          activeView === 'protocols' ? (
+            <ProtocolsPage />
+          ) : (
+            <TasksPage />
+          )
         ) : (
           <LoginPage />
         )}

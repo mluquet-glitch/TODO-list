@@ -1807,11 +1807,353 @@ label.checkbox-chip--active {
 }
 
 /* ---------------------------------------------------------------------------
+   Navegación principal
+--------------------------------------------------------------------------- */
+.app-nav {
+  display: flex;
+  gap: 0.25rem;
+  align-self: flex-start;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #e9ecf5;
+}
+
+.app-nav__item {
+  padding: 0.5rem 1.1rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-nav__item:hover {
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text);
+}
+
+.app-nav__item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.app-nav__item--active,
+.app-nav__item--active:hover {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+/* ---------------------------------------------------------------------------
+   Página de protocolos
+--------------------------------------------------------------------------- */
+.protocols-page {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.protocols-page__sidebar,
+.protocols-page__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.protocols-page__content {
+  align-items: center;
+}
+
+.protocols-page__content > * {
+  width: 100%;
+}
+
+.protocols-page__empty {
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.protocols-page__empty h2 {
+  font-size: 1.1rem;
+}
+
+.protocol-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.protocol-form .card__title {
+  margin-bottom: 0;
+}
+
+.protocol-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.protocol-list__items,
+.execution-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 330px;
+  overflow-y: auto;
+}
+
+.protocol-list__row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.protocol-list__select,
+.execution-list__item {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.execution-list__item {
+  display: block;
+  width: 100%;
+}
+
+.protocol-list__select:hover,
+.execution-list__item:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.protocol-list__select:focus-visible,
+.protocol-list__edit:focus-visible,
+.execution-list__item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.protocol-list__select--active,
+.protocol-list__select--active:hover,
+.execution-list__item--active,
+.execution-list__item--active:hover {
+  border-color: var(--primary);
+  background: #eef2ff;
+}
+
+.protocol-list__name,
+.execution-list__name {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.protocol-list__meta,
+.execution-list__date {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.protocol-list__trigger {
+  display: block;
+  margin-top: 0.1rem;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.protocol-list__edit {
+  flex: none;
+  width: 2.1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.protocol-list__edit:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.protocol-detail,
+.execution-detail {
+  max-width: 820px;
+}
+
+.protocol-detail__header,
+.execution-detail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.protocol-detail__title,
+.execution-detail__title {
+  font-size: 1.35rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.protocol-detail__meta {
+  margin-top: 0.15rem;
+}
+
+.protocol-detail__trigger {
+  margin-top: 0.45rem;
+  color: #475569;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.protocol-detail__trigger span {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.protocol-detail__actions,
+.execution-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.protocol-detail__steps {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.protocol-detail__subtitle {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.step-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.step-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.step-card--readonly {
+  background: var(--surface);
+}
+
+.step-card__number {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: #eef2ff;
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.step-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.step-card__name {
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.step-card__description {
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.step-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.step-card__edit {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.step-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.step-form__title {
+  font-size: 0.88rem;
+}
+
+.execution-detail__eyebrow {
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------------------
    Responsive
 --------------------------------------------------------------------------- */
 @media (max-width: 820px) {
   .tasks-page,
-  .task-detail-page__columns {
+  .task-detail-page__columns,
+  .protocols-page {
     grid-template-columns: 1fr;
   }
 
@@ -1877,5 +2219,22 @@ label.checkbox-chip--active {
 
   .app__user-info {
     align-items: flex-start;
+  }
+
+  .app-nav {
+    width: 100%;
+  }
+
+  .app-nav__item {
+    flex: 1;
+  }
+
+  .protocol-detail__actions,
+  .execution-detail__actions {
+    width: 100%;
+  }
+
+  .step-card {
+    flex-wrap: wrap;
   }
 }

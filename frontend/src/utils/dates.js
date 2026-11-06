@@ -55,3 +55,17 @@ export function formatDateOnly(value) {
 export function isTaskOverdue(task, today = todayDateOnly()) {
   return Boolean(task.dueDate) && task.status !== 'done' && task.dueDate < today;
 }
+
+/** Formatea una fecha con hora (ISO o Date) para mostrarla en español. */
+export function formatDateTime(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
