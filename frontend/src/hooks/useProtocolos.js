@@ -156,6 +156,16 @@ export function useProtocolos() {
     [run],
   );
 
+  const reordenarPasos = useCallback(
+    (protocoloId, pasoIds) =>
+      run(async () => {
+        const updated = await protocolosApi.reordenarPasos(protocoloId, pasoIds);
+        setProtocolos((current) => upsert(current, updated));
+        return updated;
+      }, 'No se pudo reordenar los pasos'),
+    [run],
+  );
+
   const toggleEmocionFilter = useCallback((id) => {
     setEmocionFilterIds((current) =>
       current.includes(id)
@@ -189,6 +199,7 @@ export function useProtocolos() {
     createPaso,
     updatePaso,
     removePaso,
+    reordenarPasos,
     refresh: load,
     clearError: () => setError(null),
   };

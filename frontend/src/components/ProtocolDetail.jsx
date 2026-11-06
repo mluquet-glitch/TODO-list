@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 /** Vista central de un protocolo: datos, acciones y CRUD de sus pasos. */
 export default function ProtocolDetail({
@@ -10,6 +10,7 @@ export default function ProtocolDetail({
   onAddPaso,
   onUpdatePaso,
   onRemovePaso,
+  onReordenarPasos,
 }) {
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -18,6 +19,12 @@ export default function ProtocolDetail({
   const [editNombre, setEditNombre] = useState('');
   const [editDescripcion, setEditDescripcion] = useState('');
   const [editError, setEditError] = useState('');
+  const [draggedId, setDraggedId] = useState(null);
+
+  const pasosOrdenados = useMemo(
+    () => [...(protocolo.pasos ?? [])].sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)),
+    [protocolo.pasos],
+  );
 
   async function handleAddStep(event) {
     event.preventDefault();
@@ -81,6 +88,42 @@ export default function ProtocolDetail({
     }
 
     await onRemovePaso(protocolo.id, paso.id);
+  }
+
+  function handleDragStart(pasoId) {
+    setDraggedId(pasoId);
+  }
+
+  function handleDragOver(event) {
+    event.preventDefault();
+  }
+
+  async function handleDrop(targetPasoId) {
+    if (!draggedId || draggedId === targetPasoId) {
+      setDraggedId(null);
+      return;
+    }
+
+    const nuevoOrden = pasosOrdenados.map((paso) => paso.id);
+
+    // Mueve el paso arrastrado justo antes del paso sobre el que se soltó.
+    const origen = nuevoOrden.indexOf(draggedId);
+    const destino = nuevoOrden.indexOf(targetPasoId);
+    if (origen === -1 || destino === -1) {
+      setDraggedId(null);
+      return;
+    }
+
+    nuevoOrden.splice(origen, 1);
+    nuevoOrden.splice(destino, 0, draggedId);
+
+    setDraggedId(null);
+
+    await onReordenarPasos(protocolo.id, nuevoOrden);
+  }
+
+  async function handleDeleteStepWrapper(paso) {
+    await handleDeleteStep(paso);
   }
 
   return (
@@ -158,9 +201,16 @@ export default function ProtocolDetail({
             Este protocolo todavía no tiene pasos. Añade el primero abajo.
           </p>
         ) : (
-          <ol className="step-list">
-            {protocolo.pasos.map((paso, index) => (
-              <li key={paso.id} className="step-card">
+          <ol className="step-list" role="list">
+            {pasosOrdenados.map((paso) => (
+              <li
+                key={paso.id}
+                className={`step-card${draggedId === paso.id ? ' step-card--dragging' : ''}`}
+                draggable
+                onDragStart={() => handleDragStart(paso.id)}
+                onDragOver={handleDragOver}
+                onDrop={() => handleDrop(paso.id)}
+              >
                 {editingId === paso.id ? (
                   <form
                     className="step-card__edit"
@@ -221,7 +271,7 @@ export default function ProtocolDetail({
                 ) : (
                   <>
                     <span className="step-card__number" aria-hidden="true">
-                      {index + 1}
+                      {paso.orden ?? 0}
                     </span>
 
                     <div className="step-card__body">

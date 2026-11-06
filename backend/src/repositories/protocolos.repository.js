@@ -13,9 +13,10 @@ const PROTOCOLO_SELECT = `
             'id', pa.id,
             'protocoloId', pa.protocolo_id,
             'nombre', pa.nombre,
-            'descripcion', pa.descripcion
+            'descripcion', pa.descripcion,
+            'orden', pa.orden
           )
-          ORDER BY pa.id
+          ORDER BY pa.orden ASC, pa.id ASC
         ),
         '[]'::json
       )
@@ -57,6 +58,7 @@ function mapPaso(row) {
     protocoloId: Number(row.protocolo_id),
     nombre: row.nombre,
     descripcion: row.descripcion,
+    orden: row.orden === null ? null : Number(row.orden),
   };
 }
 
@@ -202,25 +204,97 @@ export const protocolosRepository = {
     return rows[0] ? mapPaso(rows[0]) : null;
   },
 
-  async createPaso({ protocoloId, nombre, descripcion = null }) {
+  async createPaso({ protocoloId, nombre, descripcion = null, orden = null }) {
+    const ordenFinal =
+      orden !== null && orden !== undefined
+        ? orden
+        : (
+            await query(
+              `SELECT COALESCE(MAX(orden), 0) + 1 AS siguiente
+               FROM pasos
+               WHERE protocolo_id = $1`,
+              [protocoloId],
+            )
+          ).rows[0].siguiente;
+
     const { rows } = await query(
-      `INSERT INTO pasos (protocolo_id, nombre, descripcion)
-       VALUES ($1, $2, $3)
-       RETURNING id, protocolo_id, nombre, descripcion`,
-      [protocoloId, nombre, descripcion],
+      `INSERT INTO pasos (protocolo_id, nombre, descripcion, orden)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, protocolo_id, nombre, descripcion, orden`,
+      [protocoloId, nombre, descripcion, ordenFinal],
     );
     return mapPaso(rows[0]);
   },
 
-  async updatePaso(id, protocoloId, { nombre, descripcion }) {
+  async updatePaso(id, protocoloId, { nombre, descripcion, orden }) {
+    const assignments = [];
+    const values = [];
+
+    if (nombre !== undefined) {
+      values.push(nombre);
+      assignments.push(`nombre = $${values.length}`);
+    }
+    if (descripcion !== undefined) {
+      values.push(descripcion);
+      assignments.push(`descripcion = $${values.length}`);
+    }
+    if (orden !== undefined) {
+      values.push(orden);
+      assignments.push(`orden = $${values.length}`);
+    }
+
+    if (assignments.length === 0) {
+      return this.findPasoById(id, protocoloId);
+    }
+
+    values.push(id, protocoloId);
+
     const { rows } = await query(
       `UPDATE pasos
-       SET nombre = $1, descripcion = $2
-       WHERE id = $3 AND protocolo_id = $4
-       RETURNING id, protocolo_id, nombre, descripcion`,
-      [nombre, descripcion, id, protocoloId],
+       SET ${assignments.join(', ')}
+       WHERE id = $${values.length - 1} AND protocolo_id = $${values.length}
+       RETURNING id, protocolo_id, nombre, descripcion, orden`,
+      values,
     );
     return rows[0] ? mapPaso(rows[0]) : null;
+  },
+
+  /** Reasigna el orden de los pasos de un protocolo según la lista de ids recibida. */
+  async reordenarPasos(protocoloId, pasoIds) {
+    const client = await getClient();
+
+    try {
+      await client.query('BEGIN');
+
+      // Verifica que todos los pasos pertenecen al protocolo.
+      const { rows: existentes } = await client.query(
+        `SELECT id FROM pasos WHERE protocolo_id = $1`,
+        [protocoloId],
+      );
+      const existentesIds = new Set(existentes.map((r) => Number(r.id)));
+      const invalidos = pasoIds.filter((id) => !existentesIds.has(id));
+      if (invalidos.length > 0) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+
+      // Asigna orden secuencial según la posición en la lista.
+      for (let i = 0; i < pasoIds.length; i += 1) {
+        await client.query(
+          `UPDATE pasos SET orden = $1 WHERE id = $2 AND protocolo_id = $3`,
+          [i + 1, pasoIds[i], protocoloId],
+        );
+      }
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    return this.findById(protocoloId);
   },
 
   async removePaso(id, protocoloId) {

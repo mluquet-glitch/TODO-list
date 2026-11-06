@@ -140,4 +140,19 @@ export const protocolosService = {
 
     return getProtocoloOrThrow(protocoloId);
   },
+
+  async reordenarPasos(protocoloId, pasoIds) {
+    await getProtocoloOrThrow(protocoloId);
+
+    const protocolo = await protocolosRepository.reordenarPasos(
+      protocoloId,
+      pasoIds,
+    );
+    if (!protocolo) {
+      throw ApiError.badRequest(
+        'Uno o más pasos no pertenecen a este protocolo',
+      );
+    }
+    return protocolo;
+  },
 };

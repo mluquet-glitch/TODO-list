@@ -11,6 +11,7 @@ router.delete('/:id', protocolosController.remove);
 
 // Pasos anidados dentro de un protocolo.
 router.post('/:protocoloId/pasos', protocolosController.createPaso);
+router.patch('/:protocoloId/pasos/orden', protocolosController.reordenarPasos);
 router.patch('/:protocoloId/pasos/:pasoId', protocolosController.updatePaso);
 router.delete('/:protocoloId/pasos/:pasoId', protocolosController.removePaso);
 

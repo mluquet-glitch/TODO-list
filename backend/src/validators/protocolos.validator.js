@@ -226,6 +226,47 @@ export function validateUpdatePaso(body) {
   return data;
 }
 
+/** Valida PATCH /api/protocolos/:protocoloId/pasos/orden. */
+export function validateReordenarPasos(body) {
+  assertObject(body);
+
+  const errors = [];
+  const pasoIds = parsePasoIds(body.pasoIds, errors);
+
+  if (errors.length > 0) throw ApiError.badRequest('Datos inválidos', errors);
+
+  return { pasoIds };
+}
+
+function parsePasoIds(value, errors) {
+  if (value === undefined || value === null) {
+    errors.push('pasoIds es obligatorio');
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    errors.push('pasoIds debe ser un arreglo de ids');
+    return undefined;
+  }
+
+  if (value.length === 0) {
+    errors.push('pasoIds no puede estar vacío');
+    return undefined;
+  }
+
+  const ids = [];
+  for (const item of value) {
+    const id = normalizeId(item);
+    if (typeof id !== 'number' || id <= 0) {
+      errors.push('pasoIds debe contener ids de paso válidos');
+      return undefined;
+    }
+    if (!ids.includes(id)) ids.push(id);
+  }
+
+  return ids;
+}
+
 /** Valida un id positivo de ruta. */
 function validateId(value, label) {
   if (typeof value !== 'string' || !INT_RE.test(value) || !Number.isSafeInteger(Number(value))) {

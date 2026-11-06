@@ -61,4 +61,12 @@ export const protocolosApi = {
     );
     return payload.data;
   },
+
+  async reordenarPasos(protocoloId, pasoIds) {
+    const payload = await api.patch(
+      `${RESOURCE}/${protocoloId}/pasos/orden`,
+      { pasoIds },
+    );
+    return payload.data;
+  },
 };

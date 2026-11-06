@@ -4,6 +4,7 @@ import {
   validateCreateProtocolo,
   validatePasoId,
   validateProtocoloId,
+  validateReordenarPasos,
   validateUpdatePaso,
   validateUpdateProtocolo,
 } from '../validators/protocolos.validator.js';
@@ -70,6 +71,16 @@ export const protocolosController = {
     const protocoloId = validateProtocoloId(req.params.protocoloId);
     const pasoId = validatePasoId(req.params.pasoId);
     const protocolo = await protocolosService.removePaso(protocoloId, pasoId);
+    res.json({ data: protocolo });
+  }),
+
+  reordenarPasos: asyncHandler(async (req, res) => {
+    const protocoloId = validateProtocoloId(req.params.protocoloId);
+    const { pasoIds } = validateReordenarPasos(req.body);
+    const protocolo = await protocolosService.reordenarPasos(
+      protocoloId,
+      pasoIds,
+    );
     res.json({ data: protocolo });
   }),
 };

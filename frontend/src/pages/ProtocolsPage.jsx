@@ -29,6 +29,7 @@ export default function ProtocolsPage() {
     createPaso,
     updatePaso,
     removePaso,
+    reordenarPasos,
     refresh: refreshProtocolos,
     clearError: clearProtocolosError,
   } = useProtocolos();
@@ -274,6 +275,7 @@ export default function ProtocolsPage() {
             onAddPaso={createPaso}
             onUpdatePaso={updatePaso}
             onRemovePaso={removePaso}
+            onReordenarPasos={reordenarPasos}
           />
         ) : selectedExecution ? (
           <ExecutionDetail
