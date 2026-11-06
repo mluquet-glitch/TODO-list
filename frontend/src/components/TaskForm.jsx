@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
-import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
+import { TASK_PRIORITIES } from '../constants/tasks.js';
 import CategorySelection from './CategorySelection.jsx';
+import StatusCheckbox from './StatusCheckbox.jsx';
 
 const INITIAL_FORM = {
   title: '',
@@ -205,19 +206,16 @@ export default function TaskForm({
 
           <div className="form-row">
             <div className="field">
-              <label htmlFor="task-status">Estado</label>
-              <select
+              <span className="field__label">Estado</span>
+              <StatusCheckbox
                 id="task-status"
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-              >
-                {TASK_STATUSES.map(({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                status={form.status}
+                disabled={saving}
+                onChange={(status) => {
+                  setForm((current) => ({ ...current, status }));
+                  if (localError) setLocalError('');
+                }}
+              />
             </div>
 
             <div className="field">

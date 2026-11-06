@@ -91,7 +91,7 @@ CREATE TABLE tasks (
         ON DELETE CASCADE,
 
     CONSTRAINT chk_tasks_status
-        CHECK (status IN ('pending', 'in_progress', 'done')),
+        CHECK (status IN ('pending', 'done')),
 
     CONSTRAINT chk_tasks_priority
         CHECK (priority IN ('low', 'medium', 'high', 'urgent')),

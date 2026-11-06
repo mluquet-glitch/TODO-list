@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { PRIORITY_LABELS, STATUS_LABELS, TASK_STATUSES } from '../constants/tasks.js';
+import { PRIORITY_LABELS, STATUS_LABELS } from '../constants/tasks.js';
 import { formatDateOnly, isTaskOverdue } from '../utils/dates.js';
+import StatusCheckbox from './StatusCheckbox.jsx';
 
 const EMPTY_CHILDREN = new Map();
 
@@ -149,22 +150,12 @@ export default function TaskItem({
         </div>
 
         <div className="task__actions" style={{ position: 'relative', zIndex: 20 }}>
-          <label className="visually-hidden" htmlFor={`status-${task.id}`}>
-            Cambiar estado de {task.title}
-          </label>
-          <select
+          <StatusCheckbox
             id={`status-${task.id}`}
-            className="task__select"
-            value={task.status}
+            status={task.status}
             disabled={busy}
-            onChange={(event) => onChange(task.id, { status: event.target.value })}
-          >
-            {TASK_STATUSES.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            onChange={(status) => onChange(task.id, { status })}
+          />
 
           <button
             type="button"
@@ -263,27 +254,13 @@ function SubtaskTree({
               )}
             </button>
 
-            <label
-              className="visually-hidden"
-              htmlFor={`subtask-status-${subtask.id}`}
-            >
-              Cambiar estado de {subtask.title}
-            </label>
-            <select
+            <StatusCheckbox
               id={`subtask-status-${subtask.id}`}
-              className="task__select task__subtask-select"
-              value={subtask.status}
+              status={subtask.status}
               disabled={busy}
-              onChange={(event) =>
-                onChange(subtask.id, { status: event.target.value })
-              }
-            >
-              {TASK_STATUSES.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+              onChange={(status) => onChange(subtask.id, { status })}
+              className="task__subtask-select"
+            />
           </div>
 
           <SubtaskTree

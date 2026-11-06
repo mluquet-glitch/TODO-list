@@ -79,7 +79,7 @@ export default function TasksPage() {
         acc[task.status] = (acc[task.status] ?? 0) + 1;
         return acc;
       },
-      { all: 0, pending: 0, in_progress: 0, done: 0 },
+      { all: 0, pending: 0, done: 0 },
     );
   }, [rootTasks]);
 

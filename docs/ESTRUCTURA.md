@@ -401,7 +401,7 @@ seed precarga cuatro categorías. Al borrar una categoría, las asignaciones se 
 | `user_id` | `BIGINT` | `NOT NULL`, FK → `users(id)` `ON DELETE CASCADE` |
 | `title` | `VARCHAR(255)` | `NOT NULL` |
 | `description` | `TEXT` | Nullable |
-| `status` | `VARCHAR(50)` | default `pending`, CHECK `pending/in_progress/done` |
+| `status` | `VARCHAR(50)` | default `pending`, CHECK `pending/done` |
 | `priority` | `VARCHAR(50)` | default `medium`, CHECK `low/medium/high/urgent` |
 | `due_date` | `DATE` | Nullable; fecha límite sin hora (`YYYY-MM-DD`) |
 | `parent_task_id` | `BIGINT` | Nullable, FK → `tasks(id)` `ON DELETE CASCADE`; CHECK `parent_task_id <> id` |
@@ -629,7 +629,7 @@ Content-Type: application/json
 }
 ```
 
-- `status`: `pending` | `in_progress` | `done` (default `pending`).
+- `status`: `pending` | `done` (default `pending`).
 - `priority`: `low` | `medium` | `high` | `urgent` (default `medium`).
 - `dueDate`: fecha límite opcional en `YYYY-MM-DD` o `null`. El backend valida que sea una fecha
   real (rechaza `2026-02-31`) y la API la devuelve siempre sin hora.
@@ -768,7 +768,7 @@ frontend/
   retira todos los chips a la vez.
 - El grupo **Fecha límite** ofrece presets: `Vencidas` (fecha pasada y tarea no completada),
   `Para hoy`, `Próximos 7 días` y `Sin fecha`. Se combinan con OR entre sí.
-- Dentro del mismo tipo los valores se combinan con **OR** (p. ej. `pending` o `in_progress`, varias
+- Dentro del mismo tipo los valores se combinan con **OR** (p. ej. `pending` o `done`, varias
   categorías o varios presets de fecha); entre tipos distintos, con **AND** (estado + prioridad +
   categoría + fecha). La búsqueda por texto se aplica además como AND.
 - `FilteredTaskList` + `useTaskFilters` aplican la misma lógica en la pantalla principal y en el

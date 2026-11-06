@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
-import { TASK_PRIORITIES, TASK_STATUSES } from '../constants/tasks.js';
+import { TASK_PRIORITIES } from '../constants/tasks.js';
 import CategorySelection from './CategorySelection.jsx';
+import StatusCheckbox from './StatusCheckbox.jsx';
 
 function toForm(task) {
   return {
@@ -225,19 +226,15 @@ export default function TaskDetail({
 
           <div className="form-row">
             <div className="field">
-              <label htmlFor="detail-status">Estado</label>
-              <select
+              <span className="field__label">Estado</span>
+              <StatusCheckbox
                 id="detail-status"
-                name="status"
-                value={form.status}
-                onChange={handleChange}
-              >
-                {TASK_STATUSES.map(({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                status={form.status}
+                onChange={(status) => {
+                  setForm((current) => ({ ...current, status }));
+                  setSaved(false);
+                }}
+              />
             </div>
 
             <div className="field">

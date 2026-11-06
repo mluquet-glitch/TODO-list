@@ -30,7 +30,7 @@ SELECT u.id, seed.title, seed.description, seed.status, seed.priority
 FROM (
   VALUES
     ('Configurar el entorno', 'Copiar .env.example a .env y ejecutar las migraciones.', 'done', 'high'),
-    ('Implementar autenticación JWT', 'Registro, login, refresh y logout con cookies httpOnly.', 'in_progress', 'urgent'),
+    ('Implementar autenticación JWT', 'Registro, login, refresh y logout con cookies httpOnly.', 'pending', 'urgent'),
     ('Añadir filtros por prioridad', 'Permitir filtrar el listado por prioridad desde la interfaz.', 'pending', 'medium')
 ) AS seed (title, description, status, priority)
 CROSS JOIN users u

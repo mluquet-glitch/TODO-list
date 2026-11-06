@@ -932,6 +932,47 @@ textarea {
   font-size: 0.8rem;
 }
 
+/* Checkbox de estado: solo pendiente o completada. */
+.status-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.status-checkbox:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.status-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--done);
+  cursor: pointer;
+}
+
+.status-checkbox--done {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.status-checkbox--done:hover {
+  border-color: #16a34a;
+  color: #166534;
+}
+
 .badge {
   font-size: 0.72rem;
   font-weight: 600;

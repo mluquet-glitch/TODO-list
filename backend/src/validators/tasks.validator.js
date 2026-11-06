@@ -1,7 +1,7 @@
 import { ApiError } from '../utils/ApiError.js';
 
 /** Valores permitidos por los CHECK de la tabla `tasks`. */
-export const TASK_STATUSES = ['pending', 'in_progress', 'done'];
+export const TASK_STATUSES = ['pending', 'done'];
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
 const INT_RE = /^[1-9]\d*$/;
