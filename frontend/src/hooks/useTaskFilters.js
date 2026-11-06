@@ -209,10 +209,10 @@ export function useTaskFilters(categories) {
             if (includeValues.length > 0) {
               const hasInclude =
                 type === 'category'
-                  ? (task.categories ?? []).some((c) =>
-                      includeValues.includes(c.id),
+                  ? includeValues.every((value) =>
+                      (task.categories ?? []).some((c) => c.id === value),
                     )
-                  : includeValues.includes(task[type]);
+                  : includeValues.every((value) => task[type] === value);
               if (!hasInclude) return false;
             }
 
