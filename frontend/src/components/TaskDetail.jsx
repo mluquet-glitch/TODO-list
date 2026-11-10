@@ -7,6 +7,9 @@ function toForm(task) {
   return {
     title: task.title,
     description: task.description ?? '',
+    calificacion: task.calificacion ?? '',
+    ponderacion: task.ponderacion ?? '',
+    presentado: task.presentado === true || task.presentado === 'true',
     status: task.status,
     priority: task.priority,
     dueDate: task.dueDate ?? '',
@@ -89,6 +92,9 @@ export default function TaskDetail({
     const updated = await onUpdate(task.id, {
       title,
       description: form.description.trim() || null,
+      calificacion: form.calificacion.trim() || null,
+      ponderacion: form.ponderacion.trim() || null,
+      presentado: form.presentado,
       status: form.status,
       priority: form.priority,
       dueDate: form.dueDate || null,
@@ -188,6 +194,46 @@ export default function TaskDetail({
               onChange={handleChange}
               maxLength={2000}
               placeholder="Detalles opcionales"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="detail-calificacion">Calificacion</label>
+            <textarea
+              id="detail-calificacion"
+              name="calificacion"
+              rows={2}
+              value={form.calificacion}
+              onChange={handleChange}
+              maxLength={4000}
+              placeholder="Calificacion opcional"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="detail-ponderacion">Ponderacion</label>
+            <input
+              id="detail-ponderacion"
+              name="ponderacion"
+              type="number"
+              min="0"
+              value={form.ponderacion}
+              onChange={handleChange}
+              placeholder="Ponderacion"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="detail-presentado">Presentado</label>
+            <input
+              id="detail-presentado"
+              name="presentado"
+              type="checkbox"
+              checked={form.presentado === true || form.presentado === 'true'}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, presentado: event.target.checked }));
+                setSaved(false);
+              }}
             />
           </div>
 

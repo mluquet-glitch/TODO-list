@@ -90,6 +90,33 @@ const parsers = {
   dueDate(value, errors) {
     return normalizeDateOnly(value, errors);
   },
+  calificacion(value, errors) {
+    if (value === null || value === undefined) return null;
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    if (trimmed.length > 4000) {
+      errors.push('calificacion no puede superar los 4000 caracteres');
+      return undefined;
+    }
+    return trimmed === '' ? null : trimmed;
+  },
+  ponderacion(value, errors) {
+    if (value === null || value === undefined || value === '') return null;
+    const num = typeof value === 'string' ? Number(value) : value;
+    if (!Number.isSafeInteger(num) || num < 0) {
+      errors.push('ponderacion debe ser un entero no negativo');
+      return undefined;
+    }
+    return num;
+  },
+  presentado(value, errors) {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'boolean') return value;
+    if (value === 'true' || value === 1) return true;
+    if (value === 'false' || value === 0) return false;
+    errors.push('presentado debe ser un valor booleano');
+    return undefined;
+  },
   parentTaskId(value, errors) {
     if (value === null || value === '') return null;
     const id = normalizeId(value);
@@ -152,7 +179,7 @@ function parseBody(body, mode) {
 
   if (mode === 'update' && keys.length === 0) {
     errors.push(
-      'Envía al menos un campo editable: title, description, status, priority, dueDate, parentTaskId o categoryIds',
+      'Envía al menos un campo editable: title, description, calificacion, ponderacion, presentado, status, priority, dueDate, parentTaskId o categoryIds',
     );
   }
 

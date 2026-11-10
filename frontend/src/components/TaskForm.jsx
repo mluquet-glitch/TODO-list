@@ -6,6 +6,9 @@ import StatusCheckbox from './StatusCheckbox.jsx';
 const INITIAL_FORM = {
   title: '',
   description: '',
+  calificacion: '',
+  ponderacion: '',
+  presentado: false,
   status: 'pending',
   priority: 'medium',
   dueDate: '',
@@ -91,6 +94,9 @@ export default function TaskForm({
     const created = await onCreate({
       title,
       description: form.description.trim() || null,
+      calificacion: form.calificacion.trim() || null,
+      ponderacion: form.ponderacion.trim() || null,
+      presentado: form.presentado,
       status: form.status,
       priority: form.priority,
       dueDate: form.dueDate || null,
@@ -167,6 +173,46 @@ export default function TaskForm({
               onChange={handleChange}
               maxLength={2000}
               placeholder="Detalles opcionales"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="task-calificacion">Calificacion</label>
+            <textarea
+              id="task-calificacion"
+              name="calificacion"
+              rows={2}
+              value={form.calificacion}
+              onChange={handleChange}
+              maxLength={4000}
+              placeholder="Calificacion opcional"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="task-ponderacion">Ponderacion</label>
+            <input
+              id="task-ponderacion"
+              name="ponderacion"
+              type="number"
+              min="0"
+              value={form.ponderacion}
+              onChange={handleChange}
+              placeholder="Ponderacion"
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="task-presentado">Presentado</label>
+            <input
+              id="task-presentado"
+              name="presentado"
+              type="checkbox"
+              checked={form.presentado === true || form.presentado === 'true'}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, presentado: event.target.checked }));
+                if (localError) setLocalError('');
+              }}
             />
           </div>
 

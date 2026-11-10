@@ -5,8 +5,6 @@ import StatusCheckbox from './StatusCheckbox.jsx';
 
 const EMPTY_CHILDREN = new Map();
 
-const DESC_MAX_CHARS = 100;
-
 /**
  * Tarjeta de una tarea: título clicable, vista previa de la descripción,
  * badges, cambio de estado, borrado y desplegable de subtareas.
@@ -28,11 +26,6 @@ export default function TaskItem({
     task.id,
     childrenByParent,
   );
-
-  const description =
-    task.description && task.description.length > DESC_MAX_CHARS
-      ? `${task.description.slice(0, DESC_MAX_CHARS)}…`
-      : task.description || '';
 
   async function handleDelete() {
     if (window.confirm(`¿Eliminar la tarea "${task.title}"?`)) {
@@ -102,9 +95,21 @@ export default function TaskItem({
               <span className="task__value">{pendingSubtasks}</span>
             </div>
 
-            <div className="task__description-row">
-              <span className="task__label">Descripción:</span>
-              <span className="task__value">{description}</span>
+            <div className="task__descripcion-row">
+              <span className="task__label">Descripcion:</span>
+              <span className="task__value">{task.description ?? ''}</span>
+            </div>
+
+            <div className="task__calificacion-row">
+              <span className="task__label">Calificacion:</span>
+              <span className="task__value">{task.calificacion ?? ''}</span>
+              <span className="task__separator">/</span>
+              <span className="task__value">{task.ponderacion ?? ''}</span>
+            </div>
+
+            <div className="task__presentado-row">
+              <span className="task__label">Presentado:</span>
+              <span className="task__value">{task.presentado ? 'Si' : 'No'}</span>
             </div>
           </div>
 

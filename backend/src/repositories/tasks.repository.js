@@ -5,6 +5,9 @@ const TASK_COLUMNS = `
   t.user_id,
   t.title,
   t.description,
+  t.calificacion,
+  t.ponderacion,
+  t.presentado,
   t.status,
   t.priority,
   to_char(t.due_date, 'YYYY-MM-DD') AS due_date,
@@ -40,6 +43,9 @@ const TASK_SELECT = `
 const FIELD_COLUMNS = {
   title: 'title',
   description: 'description',
+  calificacion: 'calificacion',
+  ponderacion: 'ponderacion',
+  presentado: 'presentado',
   status: 'status',
   priority: 'priority',
   dueDate: 'due_date',
@@ -53,6 +59,9 @@ function mapRow(row) {
     userId: Number(row.user_id),
     title: row.title,
     description: row.description,
+    calificacion: row.calificacion,
+    ponderacion: row.ponderacion === null ? null : Number(row.ponderacion),
+    presentado: row.presentado === null ? false : row.presentado === true || row.presentado === 'true',
     status: row.status,
     priority: row.priority,
     dueDate: row.due_date,
@@ -138,6 +147,9 @@ export const tasksRepository = {
     userId,
     title,
     description = null,
+    calificacion = null,
+    ponderacion = null,
+    presentado = false,
     status = 'pending',
     priority = 'medium',
     dueDate = null,
@@ -152,10 +164,10 @@ export const tasksRepository = {
 
       const { rows } = await client.query(
         `INSERT INTO tasks
-           (user_id, title, description, status, priority, due_date, parent_task_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+           (user_id, title, description, calificacion, ponderacion, presentado, status, priority, due_date, parent_task_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING id`,
-        [userId, title, description, status, priority, dueDate, parentTaskId],
+        [userId, title, description, calificacion, ponderacion, presentado, status, priority, dueDate, parentTaskId],
       );
 
       id = Number(rows[0].id);
