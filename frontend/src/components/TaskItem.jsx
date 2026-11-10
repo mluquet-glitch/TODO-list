@@ -115,7 +115,7 @@ export default function TaskItem({
 
           <div className="task__due-row">
             <span className="task__label">Fecha límite:</span>
-            <span className="task__value">
+            <span className={`task__due ${isTaskOverdue(task) ? 'task__due--overdue' : ''}`}>
               {task.dueDate
                 ? isTaskOverdue(task)
                   ? `Venció el ${formatDateOnly(task.dueDate)}`

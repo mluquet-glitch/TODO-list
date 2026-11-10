@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import Alert from '../components/Alert.jsx';
 import CategoryManager from '../components/CategoryManager.jsx';
 import FilteredTaskList from '../components/FilteredTaskList.jsx';
+import FloatingPanel from '../components/FloatingPanel.jsx';
 import TaskDetail from '../components/TaskDetail.jsx';
 import TaskForm from '../components/TaskForm.jsx';
 import TaskHierarchyIndex from '../components/TaskHierarchyIndex.jsx';
@@ -10,7 +11,7 @@ import { useCategories } from '../hooks/useCategories.js';
 import { useTaskFilters } from '../hooks/useTaskFilters.js';
 import { useTasks } from '../hooks/useTasks.js';
 
-/** Página principal: formulario, filtros dinámicos y listado de tareas raíz. */
+/** Página principal: botones del sidebar que abren paneles flotantes (35%) y listado de tareas. */
 export default function TasksPage() {
   const {
     tasks,
@@ -38,6 +39,7 @@ export default function TasksPage() {
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const summaryId = useId();
+  const [formPanel, setFormPanel] = useState(null);
   const mainFilters = useTaskFilters(categories);
   const detailFilters = useTaskFilters(categories);
 
@@ -149,40 +151,22 @@ export default function TasksPage() {
 
         <div className="task-detail-page__columns">
           <div className="task-detail-page__sidebar">
-            <TaskDetail
-              key={selectedTask.id}
-              task={selectedTask}
-              categories={categories}
-              categoriesLoading={categoriesLoading}
-              saving={saving}
-              onUpdate={updateTask}
-              onDelete={handleDeleteTask}
-              tasks={tasks}
-            />
+            <button
+              type="button"
+              className="button button--ghost sidebar__button"
+              onClick={() => setFormPanel('task')}
+              disabled={saving}
+            >
+              {saving ? 'Guardando…' : 'Nueva subtarea'}
+            </button>
 
-            <CategoryManager
-              categories={categories}
-              saving={categorySaving}
-              error={categoriesError}
-              onCreate={createCategory}
-              onUpdate={handleUpdateCategory}
-              onDelete={handleDeleteCategory}
-              onClearError={clearCategoriesError}
-            />
-
-            <TaskForm
-              key={`subtask-${selectedTask.id}`}
-              categories={categories}
-              categoriesLoading={categoriesLoading}
-              onCreate={createTask}
-              saving={saving}
-              parentTaskId={selectedTask.id}
-              initialCategoryIds={(selectedTask.categories ?? []).map(
-                (category) => category.id,
-              )}
-              heading={`Nueva subtarea de «${selectedTask.title}»`}
-              submitLabel="Añadir subtarea"
-            />
+            <button
+              type="button"
+              className="button button--ghost sidebar__button"
+              onClick={() => setFormPanel('category')}
+            >
+              Gestionar categorías
+            </button>
           </div>
 
           <section className="card task-detail-page__content">
@@ -197,11 +181,54 @@ export default function TasksPage() {
               onDelete={handleDeleteTask}
               onOpen={setSelectedTaskId}
               emptyTitle="Esta tarea no tiene subtareas."
-              emptyHint="Añade una con el formulario de la izquierda."
+              emptyHint="Añade una con el formulario flotante."
               countLabel="subtareas"
             />
           </section>
         </div>
+
+        {formPanel === 'task' && (
+          <FloatingPanel
+            open
+            onClose={() => setFormPanel(null)}
+            title={`Nueva subtarea de «${selectedTask.title}»`}
+          >
+            <TaskForm
+              key={`subtask-${selectedTask.id}`}
+              categories={categories}
+              categoriesLoading={categoriesLoading}
+              onCreate={createTask}
+              saving={saving}
+              parentTaskId={selectedTask.id}
+              initialCategoryIds={(selectedTask.categories ?? []).map(
+                (category) => category.id,
+              )}
+              heading={`Nueva subtarea de «${selectedTask.title}»`}
+              submitLabel="Añadir subtarea"
+              tasks={tasks}
+              defaultOpen={true}
+            />
+          </FloatingPanel>
+        )}
+
+        {formPanel === 'category' && (
+          <FloatingPanel
+            open
+            onClose={() => setFormPanel(null)}
+            title="Gestionar categorías"
+          >
+            <CategoryManager
+              categories={categories}
+              saving={categorySaving}
+              error={categoriesError}
+              onCreate={createCategory}
+              onUpdate={handleUpdateCategory}
+              onDelete={handleDeleteCategory}
+              onClearError={clearCategoriesError}
+              defaultOpen={true}
+            />
+          </FloatingPanel>
+        )}
       </div>
     );
   }
@@ -209,71 +236,30 @@ export default function TasksPage() {
   return (
     <div className="tasks-page">
       <section className="tasks-page__sidebar">
-        <TaskForm
-          categories={categories}
-          categoriesLoading={categoriesLoading}
-          onCreate={createTask}
-          saving={saving}
-          tasks={tasks}
-        />
-
-        <CategoryManager
-          categories={categories}
-          saving={categorySaving}
-          error={categoriesError}
-          onCreate={createCategory}
-          onUpdate={handleUpdateCategory}
-          onDelete={handleDeleteCategory}
-          onClearError={clearCategoriesError}
-        />
-
-        <div
-          className={`card stats${
-            summaryOpen ? '' : ' collapsible-card--closed'
-          }`}
-          style={{ position: 'relative' }}
+        <button
+          type="button"
+          className="button button--ghost sidebar__button"
+          onClick={() => setFormPanel('task')}
+          disabled={saving}
         >
-          <button
-            type="button"
-            className="collapsible-card__toggle-button"
-            onClick={() => setSummaryOpen((current) => !current)}
-            aria-label={`Resumen ${summaryOpen ? 'cerrar' : 'abrir'}`}
-          />
+          {saving ? 'Guardando…' : 'Nueva tarea'}
+        </button>
 
-          <div className="collapsible-card__header">
-            <h2 className="card__title collapsible-card__title">
-              <button
-                type="button"
-                className="collapsible-card__toggle"
-                aria-expanded={summaryOpen}
-                aria-controls={summaryId}
-                onClick={() => setSummaryOpen((current) => !current)}
-              >
-                <span className="collapsible-card__chevron" aria-hidden="true">
-                  {summaryOpen ? '▾' : '▸'}
-                </span>
-                Resumen
-              </button>
-            </h2>
-          </div>
+        <button
+          type="button"
+          className="button button--ghost sidebar__button"
+          onClick={() => setFormPanel('category')}
+        >
+          Gestionar categorías
+        </button>
 
-          {summaryOpen && (
-            <div id={summaryId} className="collapsible-card__body">
-              <ul className="stats__list">
-                <li>
-                  <span>Total</span>
-                  <strong>{counts.all}</strong>
-                </li>
-                {TASK_STATUSES.map(({ value, label }) => (
-                  <li key={value}>
-                    <span>{label}</span>
-                    <strong>{counts[value] ?? 0}</strong>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          className="button button--ghost sidebar__button"
+          onClick={() => setSummaryOpen(true)}
+        >
+          Resumen
+        </button>
       </section>
 
       <section className="tasks-page__content">
@@ -289,10 +275,59 @@ export default function TasksPage() {
           onDelete={handleDeleteTask}
           onOpen={setSelectedTaskId}
           emptyTitle="No hay tareas que coincidan con el filtro."
-          emptyHint="Crea una nueva tarea con el formulario de la izquierda."
+          emptyHint="Crea una nueva tarea con el botón flotante."
           countLabel="tareas principales"
         />
       </section>
+
+      {formPanel === 'task' && (
+        <FloatingPanel open onClose={() => setFormPanel(null)} title="Nueva tarea">
+          <TaskForm
+            categories={categories}
+            categoriesLoading={categoriesLoading}
+            onCreate={createTask}
+            saving={saving}
+            tasks={tasks}
+            defaultOpen={true}
+          />
+        </FloatingPanel>
+      )}
+
+      {formPanel === 'category' && (
+        <FloatingPanel
+          open
+          onClose={() => setFormPanel(null)}
+          title="Gestionar categorías"
+        >
+          <CategoryManager
+            categories={categories}
+            saving={categorySaving}
+            error={categoriesError}
+            onCreate={createCategory}
+            onUpdate={handleUpdateCategory}
+            onDelete={handleDeleteCategory}
+            onClearError={clearCategoriesError}
+            defaultOpen={true}
+          />
+        </FloatingPanel>
+      )}
+
+      {summaryOpen && (
+        <FloatingPanel open onClose={() => setSummaryOpen(false)} title="Resumen">
+          <ul className="stats__list">
+            <li>
+              <span>Total</span>
+              <strong>{counts.all}</strong>
+            </li>
+            {TASK_STATUSES.map(({ value, label }) => (
+              <li key={value}>
+                <span>{label}</span>
+                <strong>{counts[value] ?? 0}</strong>
+              </li>
+            ))}
+          </ul>
+        </FloatingPanel>
+      )}
     </div>
   );
 }

@@ -14,12 +14,13 @@ export default function CategoryManager({
   onUpdate,
   onDelete,
   onClearError,
+  defaultOpen = false,
 }) {
   const [selectedId, setSelectedId] = useState(null);
   const [name, setName] = useState('');
   const [parentId, setParentId] = useState(null);
   const [localError, setLocalError] = useState('');
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
 
   const selected = categories.find((category) => category.id === selectedId) ?? null;
