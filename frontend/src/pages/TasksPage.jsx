@@ -167,6 +167,14 @@ export default function TasksPage() {
             >
               Gestionar categorías
             </button>
+
+            <button
+              type="button"
+              className="button button--ghost sidebar__button"
+              onClick={() => setFormPanel('taskdetail')}
+            >
+              Ver propiedades
+            </button>
           </div>
 
           <section className="card task-detail-page__content">
@@ -225,6 +233,26 @@ export default function TasksPage() {
               onUpdate={handleUpdateCategory}
               onDelete={handleDeleteCategory}
               onClearError={clearCategoriesError}
+              defaultOpen={true}
+            />
+          </FloatingPanel>
+        )}
+
+        {formPanel === 'taskdetail' && (
+          <FloatingPanel
+            open
+            onClose={() => setFormPanel(null)}
+            title={`Propiedades de «${selectedTask.title}»`}
+          >
+            <TaskDetail
+              key={selectedTask.id}
+              task={selectedTask}
+              categories={categories}
+              categoriesLoading={categoriesLoading}
+              saving={saving}
+              onUpdate={updateTask}
+              onDelete={handleDeleteTask}
+              tasks={tasks}
               defaultOpen={true}
             />
           </FloatingPanel>

@@ -248,16 +248,23 @@ textarea {
   flex-direction: column;
   gap: 0.4rem;
 }
-.task-form__body,
-.task-detail__body input {
-  font-size: 0.7rem;
+.task-detail__body,
+.task-otros 
+{
+    input,
+    select,
+    textarea 
+    {
+    font-size: 0.7rem;
+    }
 }
+
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
 }
-.field:has(#task-presentado){
+.field:has(#task-presentado,#detail-presentado){
   flex-direction: row;
 }
 
