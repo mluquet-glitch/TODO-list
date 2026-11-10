@@ -1,7 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import TaskItem from './TaskItem.jsx';
 
-/** Listado de tareas con estados vacío y de carga. */
+const COLUMNS = 5;
+const ROWS = 2;
+const PAGE_SIZE = COLUMNS * ROWS;
+
+/** Listado de tareas en tarjetas dispuestas en cuadrícula paginada (2×5). */
 export default function TaskList({
   tasks,
   allTasks = [],
@@ -13,6 +17,8 @@ export default function TaskList({
   emptyTitle = 'No hay tareas que coincidan con el filtro.',
   emptyHint = 'Crea una nueva tarea con el formulario de la izquierda.',
 }) {
+  const [page, setPage] = useState(0);
+
   const childrenByParent = useMemo(() => {
     const map = new Map();
 
@@ -40,19 +46,51 @@ export default function TaskList({
     );
   }
 
+  const totalPages = Math.ceil(tasks.length / PAGE_SIZE);
+  const currentPageTasks = tasks.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const start = page * PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PAGE_SIZE, tasks.length);
+
   return (
-    <ul className="task-list">
-      {tasks.map((task) => (
-        <TaskItem
-          key={task.id}
-          task={task}
-          childrenByParent={childrenByParent}
-          onChange={onChange}
-          onDelete={onDelete}
-          onOpen={onOpen}
-          busy={busy}
-        />
-      ))}
-    </ul>
+    <section className="task-grid-section">
+      <ul className="task-list">
+        {currentPageTasks.map((task) => (
+          <TaskItem
+            key={task.id}
+            task={task}
+            childrenByParent={childrenByParent}
+            onChange={onChange}
+            onDelete={onDelete}
+            onOpen={onOpen}
+            busy={busy}
+          />
+        ))}
+      </ul>
+
+      <nav className="task-pagination">
+        <button
+          type="button"
+          className="button button--ghost"
+          onClick={() => setPage((p) => Math.max(p - 1, 0))}
+          disabled={page === 0}
+        >
+          ← Anterior
+        </button>
+        <span className="task-pagination__page">
+          Página {page + 1} de {totalPages}
+        </span>
+        <button
+          type="button"
+          className="button button--ghost"
+          onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
+          disabled={page === totalPages - 1}
+        >
+          Siguiente →
+        </button>
+        <span className="task-pagination__count">
+          Mostrando {start} a {end} de {tasks.length} tareas
+        </span>
+      </nav>
+    </section>
   );
 }
