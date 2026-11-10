@@ -86,36 +86,38 @@ export default function TaskItem({
               <span className="task__value">{PRIORITY_LABELS[task.priority] ?? task.priority}</span>
             </div>
 
-            {task.categories?.length > 0 && (
-              <div className="task__categories-row">
-                <span className="task__label">Categorías:</span>
-                {task.categories.map((category) => (
+            <div className="task__categories-row">
+              <span className="task__label">Categorías:</span>
+              {task.categories?.length > 0 ? (
+                task.categories.map((category) => (
                   <span key={category.id} className="task__category">
                     {category.name}
                   </span>
-                ))}
-              </div>
-            )}
+                ))
+              ) : null}
+            </div>
 
             <div className="task__pending-row">
               <span className="task__label">Pendiente:</span>
               <span className="task__value">{pendingSubtasks}</span>
             </div>
 
-            {description && (
-              <div className="task__description-row">
-                <span className="task__label">Descripción:</span>
-                <span className="task__value">{description}</span>
-              </div>
-            )}
+            <div className="task__description-row">
+              <span className="task__label">Descripción:</span>
+              <span className="task__value">{description}</span>
+            </div>
           </div>
 
-          {task.dueDate && (
-            <p className={`task__due ${isTaskOverdue(task) ? 'task__due--overdue' : ''}`}>
-              {isTaskOverdue(task) ? 'Venció el ' : 'Fecha límite: '}
-              <time dateTime={task.dueDate}>{formatDateOnly(task.dueDate)}</time>
-            </p>
-          )}
+          <div className="task__due-row">
+            <span className="task__label">Fecha límite:</span>
+            <span className="task__value">
+              {task.dueDate
+                ? isTaskOverdue(task)
+                  ? `Venció el ${formatDateOnly(task.dueDate)}`
+                  : formatDateOnly(task.dueDate)
+                : ''}
+            </span>
+          </div>
 
           <button
             type="button"
