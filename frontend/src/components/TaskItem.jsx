@@ -5,6 +5,8 @@ import StatusCheckbox from './StatusCheckbox.jsx';
 
 const EMPTY_CHILDREN = new Map();
 
+const DESC_MAX_CHARS = 100;
+
 /**
  * Tarjeta de una tarea: título clicable, vista previa de la descripción,
  * badges, cambio de estado, borrado y desplegable de subtareas.
@@ -26,6 +28,11 @@ export default function TaskItem({
     task.id,
     childrenByParent,
   );
+
+  const description =
+    task.description && task.description.length > DESC_MAX_CHARS
+      ? `${task.description.slice(0, DESC_MAX_CHARS)}…`
+      : task.description || '';
 
   async function handleDelete() {
     if (window.confirm(`¿Eliminar la tarea "${task.title}"?`)) {
@@ -72,46 +79,42 @@ export default function TaskItem({
               </span>
             </div>
 
-            <div className="task__meta">
-              <span className={`badge badge--${task.status}`}>
-                {STATUS_LABELS[task.status] ?? task.status}
-              </span>
-
-              <span className={`badge badge--priority-${task.priority}`}>
-                Prioridad {PRIORITY_LABELS[task.priority] ?? task.priority}
-              </span>
-
-              {task.parentTaskId && (
-                <span className="badge badge--subtask">Subtarea de #{task.parentTaskId}</span>
-              )}
+            <div className="task__info">
+              <span className="task__label">Estado:</span>
+              <span className="task__value">{STATUS_LABELS[task.status] ?? task.status}</span>
+              <span className="task__label">Prioridad:</span>
+              <span className="task__value">{PRIORITY_LABELS[task.priority] ?? task.priority}</span>
             </div>
-          </div>
 
-          {task.description && (
-            <p className="task__description" title={task.description}>
-              {task.description}
-            </p>
-          )}
+            {task.categories?.length > 0 && (
+              <div className="task__categories-row">
+                <span className="task__label">Categorías:</span>
+                {task.categories.map((category) => (
+                  <span key={category.id} className="task__category">
+                    {category.name}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="task__pending-row">
+              <span className="task__label">Pendiente:</span>
+              <span className="task__value">{pendingSubtasks}</span>
+            </div>
+
+            {description && (
+              <div className="task__description-row">
+                <span className="task__label">Descripción:</span>
+                <span className="task__value">{description}</span>
+              </div>
+            )}
+          </div>
 
           {task.dueDate && (
             <p className={`task__due ${isTaskOverdue(task) ? 'task__due--overdue' : ''}`}>
               {isTaskOverdue(task) ? 'Venció el ' : 'Fecha límite: '}
               <time dateTime={task.dueDate}>{formatDateOnly(task.dueDate)}</time>
             </p>
-          )}
-
-          {task.categories?.length > 0 && (
-            <div className="task__categories">
-              {task.categories.map((category) => (
-                <span
-                  key={category.id}
-                  className="badge badge--category"
-                  style={{ color: category.color, borderColor: category.color }}
-                >
-                  {category.name}
-                </span>
-              ))}
-            </div>
           )}
 
           <button
@@ -168,7 +171,7 @@ export default function TaskItem({
         </div>
       </li>
     );
-}
+  }
 
 /** Cuenta todas las subtareas descendientes, en cualquier nivel. */
 function countDescendants(taskId, childrenByParent) {
