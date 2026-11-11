@@ -2970,3 +2970,229 @@ label.checkbox-chip--active {
     flex-wrap: wrap;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Calendario de tareas
+--------------------------------------------------------------------------- */
+.task-calendar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.calendar-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.calendar-filters__month {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.calendar-filters__arrow {
+  padding: 0.1rem 0.5rem;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.calendar-filters__month-input,
+.calendar-filters__date input {
+  padding: 0.25rem 0.35rem;
+  font-size: 0.72rem;
+}
+
+.calendar-filters__date {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.calendar-filters__count {
+  margin-left: auto;
+  font-size: 0.7rem;
+}
+
+.task-calendar {
+  padding: 0.4rem;
+}
+
+.task-calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.task-calendar__title {
+  margin-bottom: 0.2rem;
+  text-transform: capitalize;
+}
+
+.task-calendar__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.2rem;
+  margin: 0.3rem 0 0.2rem;
+}
+
+.task-calendar__weekday {
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.task-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.2rem;
+}
+
+.task-calendar__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  min-height: 4.6rem;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fbfcfe;
+}
+
+.task-calendar__cell--empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+.task-calendar__cell--weekend {
+  background: #f4f5fa;
+}
+
+.task-calendar__cell--today {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary) inset;
+}
+
+.task-calendar__cell--selected {
+  border-color: var(--danger-dark);
+  background: #fef2f2;
+}
+
+.task-calendar__day {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-calendar__day:hover {
+  color: var(--primary);
+}
+
+.task-calendar__day-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 0.18rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.55rem;
+  line-height: 1;
+}
+
+.task-calendar__tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-height: 0;
+  max-height: 5.2rem;
+  overflow-y: auto;
+}
+
+.task-calendar__task {
+  display: block;
+  width: 100%;
+  padding: 0.12rem 0.2rem;
+  border: 0;
+  border-left: 2px solid var(--pending);
+  border-radius: 3px;
+  background: #eef2ff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.task-calendar__task:hover {
+  background: #e0e7ff;
+}
+
+.task-calendar__task--done {
+  border-left-color: var(--done);
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.task-calendar__task--overdue {
+  border-left-color: var(--danger-dark);
+  background: #fee2e2;
+}
+
+.task-calendar__undated {
+  padding: 0.4rem;
+}
+
+.task-calendar__undated-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.3rem;
+}
+
+.task-calendar__undated-head .card__title {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .calendar-filters__count {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .task-calendar {
+    overflow-x: auto;
+  }
+
+  .task-calendar__weekdays,
+  .task-calendar__grid {
+    min-width: 620px;
+  }
+}

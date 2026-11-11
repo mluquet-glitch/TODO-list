@@ -3,6 +3,7 @@ import Alert from '../components/Alert.jsx';
 import CategoryManager from '../components/CategoryManager.jsx';
 import FilteredTaskList from '../components/FilteredTaskList.jsx';
 import FloatingPanel from '../components/FloatingPanel.jsx';
+import TaskCalendar from '../components/TaskCalendar.jsx';
 import TaskDetail from '../components/TaskDetail.jsx';
 import TaskForm from '../components/TaskForm.jsx';
 import TaskHierarchyIndex from '../components/TaskHierarchyIndex.jsx';
@@ -333,7 +334,7 @@ export default function TasksPage() {
       <section className="tasks-page__content">
         <Alert type="error" message={error} onRetry={refresh} onClose={clearError} />
 
-        <FilteredTaskList
+        <TaskCalendar
           filters={mainFilters}
           tasks={rootTasks}
           allTasks={tasks}
@@ -343,9 +344,6 @@ export default function TasksPage() {
           onDelete={handleDeleteTask}
           onOpen={setSelectedTaskId}
           onOpenFloating={setFloatingTaskId}
-          emptyTitle="No hay tareas que coincidan con el filtro."
-          emptyHint="Crea una nueva tarea con el botón flotante."
-          countLabel="tareas principales"
         />
       </section>
 

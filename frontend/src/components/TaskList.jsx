@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import TaskItem from './TaskItem.jsx';
 
 const COLUMNS = 5;
@@ -19,6 +19,13 @@ export default function TaskList({
   emptyHint = 'Crea una nueva tarea con el formulario de la izquierda.',
 }) {
   const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(tasks.length / PAGE_SIZE));
+
+  // Si cambia el número de tareas (por filtros, borrado, etc.) evitamos
+  // quedarnos en una página que ya no existe.
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages - 1));
+  }, [totalPages]);
 
   const childrenByParent = useMemo(() => {
     const map = new Map();
@@ -47,7 +54,6 @@ export default function TaskList({
     );
   }
 
-  const totalPages = Math.ceil(tasks.length / PAGE_SIZE);
   const currentPageTasks = tasks.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const start = page * PAGE_SIZE + 1;
   const end = Math.min((page + 1) * PAGE_SIZE, tasks.length);
