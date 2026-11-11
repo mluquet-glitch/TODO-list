@@ -49,6 +49,11 @@ export default function TasksPage() {
     [tasks, selectedTaskId],
   );
 
+  const floatingTask = useMemo(
+    () => tasks.find((task) => task.id === floatingTaskId) ?? null,
+    [tasks, floatingTaskId],
+  );
+
   const childTasks = useMemo(
     () =>
       selectedTask
@@ -74,6 +79,13 @@ export default function TasksPage() {
       setSelectedTaskId(null);
     }
   }, [selectedTaskId, selectedTask, loading]);
+
+  // Si la tarea del panel flotante se elimina, cerramos el panel.
+  useEffect(() => {
+    if (floatingTaskId !== null && !loading && !floatingTask) {
+      setFloatingTaskId(null);
+    }
+  }, [floatingTaskId, floatingTask, loading]);
 
   const counts = useMemo(() => {
     return rootTasks.reduce(
@@ -118,8 +130,32 @@ export default function TasksPage() {
       setSelectedTaskId(null);
     }
 
+    if (deleted && id === floatingTaskId) {
+      setFloatingTaskId(null);
+    }
+
     return deleted;
   }
+
+  const floatingTaskPanel = floatingTask ? (
+    <FloatingPanel
+      open
+      onClose={() => setFloatingTaskId(null)}
+      title={`Propiedades de «${floatingTask.title}»`}
+    >
+      <TaskDetail
+        key={floatingTask.id}
+        task={floatingTask}
+        categories={categories}
+        categoriesLoading={categoriesLoading}
+        saving={saving}
+        onUpdate={updateTask}
+        onDelete={handleDeleteTask}
+        tasks={tasks}
+        defaultOpen={true}
+      />
+    </FloatingPanel>
+  ) : null;
 
   if (selectedTask) {
     const parentTask = selectedTask.parentTaskId
@@ -260,25 +296,7 @@ export default function TasksPage() {
           </FloatingPanel>
         )}
 
-        {floatingTaskId && (
-          <FloatingPanel
-            open
-            onClose={() => setFloatingTaskId(null)}
-            title={`Propiedades de «${(tasks.find((t) => t.id === floatingTaskId) ?? { title: '' }).title}»`}
-          >
-            <TaskDetail
-              key={floatingTaskId}
-              task={tasks.find((t) => t.id === floatingTaskId) ?? null}
-              categories={categories}
-              categoriesLoading={categoriesLoading}
-              saving={saving}
-              onUpdate={updateTask}
-              onDelete={handleDeleteTask}
-              tasks={tasks}
-              defaultOpen={true}
-            />
-          </FloatingPanel>
-        )}
+        {floatingTaskPanel}
       </div>
     );
   }
@@ -379,6 +397,8 @@ export default function TasksPage() {
           </ul>
         </FloatingPanel>
       )}
+
+      {floatingTaskPanel}
     </div>
   );
 }

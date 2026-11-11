@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 
 /**
  * Panel flotante que se muestra a la derecha (35% de la pantalla).
