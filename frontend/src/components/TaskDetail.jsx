@@ -7,8 +7,14 @@ function toForm(task) {
   return {
     title: task.title,
     description: task.description ?? '',
-    calificacion: task.calificacion ?? '',
-    ponderacion: task.ponderacion ?? '',
+    calificacion:
+      task.calificacion === null || task.calificacion === undefined
+        ? ''
+        : String(task.calificacion),
+    ponderacion:
+      task.ponderacion === null || task.ponderacion === undefined
+        ? ''
+        : String(task.ponderacion),
     presentado: task.presentado === true || task.presentado === 'true',
     status: task.status,
     priority: task.priority,
@@ -92,8 +98,8 @@ export default function TaskDetail({
     const updated = await onUpdate(task.id, {
       title,
       description: form.description.trim() || null,
-      calificacion: form.calificacion.trim() || null,
-      ponderacion: form.ponderacion.trim() || null,
+      calificacion: String(form.calificacion ?? '').trim() || null,
+      ponderacion: String(form.ponderacion ?? '').trim() || null,
       presentado: form.presentado,
       status: form.status,
       priority: form.priority,
