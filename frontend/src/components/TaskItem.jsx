@@ -109,7 +109,9 @@ export default function TaskItem({
 
             <div className="task__presentado-row">
               <span className="task__label">Presentado:</span>
-              <span className="task__value">{task.presentado ? 'Si' : 'No'}</span>
+              <span className={`task__value ${task.presentado ? 'task__value--yes' : 'task__value--no'}`}>
+                {task.presentado ? 'Si' : 'No'}
+              </span>
             </div>
           </div>
 

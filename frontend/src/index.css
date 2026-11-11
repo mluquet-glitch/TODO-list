@@ -342,7 +342,6 @@ textarea {
 .button--danger {
   background: transparent;
   border-color: #f3c6c6;
-  color: var(--danger);
 }
 
 .button--danger:hover:not(:disabled) {
@@ -982,6 +981,14 @@ textarea {
   text-overflow: ellipsis;
   max-width: 100%;
 }
+.task__value--yes {
+  color: var(--done);
+  font-weight: 600;
+}
+.task__value--no {
+  color: var(--danger);
+  font-weight: 600;
+}
 
 .task__ponderacion-row {
   display: flex;
@@ -1329,6 +1336,40 @@ textarea {
 }
 
 /* Checkbox de estado: solo pendiente o completada. */
+input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+
+    width: 1rem;
+    height: 0.8rem;
+
+    border: 1px solid #dc2626;
+    background-color: #fee2e2;
+
+    display: inline-grid;
+    place-content: center;
+
+    cursor: pointer;
+}
+
+/* Sin marcar: X roja */
+input[type="checkbox"]::before {
+    content: "X";
+    color: #dc2626;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Marcado: check verde */
+input[type="checkbox"]:checked {
+    background-color: #dcfce7;
+    border-color: #16a34a;
+}
+
+input[type="checkbox"]:checked::before {
+    content: "✓";
+    color: #16a34a;
+}
 .status-checkbox {
   display: inline-flex;
   align-items: center;

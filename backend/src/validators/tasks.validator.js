@@ -91,14 +91,13 @@ const parsers = {
     return normalizeDateOnly(value, errors);
   },
   calificacion(value, errors) {
-    if (value === null || value === undefined) return null;
-    if (typeof value !== 'string') return undefined;
-    const trimmed = value.trim();
-    if (trimmed.length > 4000) {
-      errors.push('calificacion no puede superar los 4000 caracteres');
+    if (value === null || value === undefined || value === '') return null;
+    const num = typeof value === 'string' ? Number(value) : value;
+    if (!Number.isSafeInteger(num) || num < 0) {
+      errors.push('calificacion debe ser un entero no negativo');
       return undefined;
     }
-    return trimmed === '' ? null : trimmed;
+    return num;
   },
   ponderacion(value, errors) {
     if (value === null || value === undefined || value === '') return null;

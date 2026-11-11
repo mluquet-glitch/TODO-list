@@ -199,14 +199,14 @@ export default function TaskDetail({
 
           <div className="field">
             <label htmlFor="detail-calificacion">Calificacion</label>
-            <textarea
+            <input
               id="detail-calificacion"
               name="calificacion"
-              rows={2}
-              value={form.calificacion}
+              type="number"
+              min="0"
+              value={form.calificacion === null || form.calificacion === undefined ? '' : form.calificacion}
               onChange={handleChange}
-              maxLength={4000}
-              placeholder="Calificacion opcional"
+              placeholder="Calificacion"
             />
           </div>
 
