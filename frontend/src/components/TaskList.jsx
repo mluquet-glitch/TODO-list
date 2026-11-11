@@ -14,6 +14,7 @@ export default function TaskList({
   onChange,
   onDelete,
   onOpen,
+  onOpenFloating,
   emptyTitle = 'No hay tareas que coincidan con el filtro.',
   emptyHint = 'Crea una nueva tarea con el formulario de la izquierda.',
 }) {
@@ -62,6 +63,7 @@ export default function TaskList({
             onChange={onChange}
             onDelete={onDelete}
             onOpen={onOpen}
+            onOpenFloating={onOpenFloating}
             busy={busy}
           />
         ))}

@@ -37,6 +37,7 @@ export default function TasksPage() {
   } = useCategories();
 
   const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [floatingTaskId, setFloatingTaskId] = useState(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const summaryId = useId();
   const [formPanel, setFormPanel] = useState(null);
@@ -188,6 +189,7 @@ export default function TasksPage() {
               onChange={updateTask}
               onDelete={handleDeleteTask}
               onOpen={setSelectedTaskId}
+              onOpenFloating={setFloatingTaskId}
               emptyTitle="Esta tarea no tiene subtareas."
               emptyHint="Añade una con el formulario flotante."
               countLabel="subtareas"
@@ -257,6 +259,26 @@ export default function TasksPage() {
             />
           </FloatingPanel>
         )}
+
+        {floatingTaskId && (
+          <FloatingPanel
+            open
+            onClose={() => setFloatingTaskId(null)}
+            title={`Propiedades de «${(tasks.find((t) => t.id === floatingTaskId) ?? { title: '' }).title}»`}
+          >
+            <TaskDetail
+              key={floatingTaskId}
+              task={tasks.find((t) => t.id === floatingTaskId) ?? null}
+              categories={categories}
+              categoriesLoading={categoriesLoading}
+              saving={saving}
+              onUpdate={updateTask}
+              onDelete={handleDeleteTask}
+              tasks={tasks}
+              defaultOpen={true}
+            />
+          </FloatingPanel>
+        )}
       </div>
     );
   }
@@ -302,6 +324,7 @@ export default function TasksPage() {
           onChange={updateTask}
           onDelete={handleDeleteTask}
           onOpen={setSelectedTaskId}
+          onOpenFloating={setFloatingTaskId}
           emptyTitle="No hay tareas que coincidan con el filtro."
           emptyHint="Crea una nueva tarea con el botón flotante."
           countLabel="tareas principales"

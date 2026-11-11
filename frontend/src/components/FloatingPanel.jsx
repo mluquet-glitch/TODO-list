@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * Panel flotante que se muestra a la derecha (35% de la pantalla).
@@ -10,6 +10,14 @@ export default function FloatingPanel({
   title,
   children,
 }) {
+  useEffect(() => {
+    if (open) {
+      console.log(`Panel flotante abierto — "${title}"`);
+    } else {
+      console.log(`Panel flotante cerrado — "${title}"`);
+    }
+  }, [open, title]);
+
   if (!open) return null;
 
   return (

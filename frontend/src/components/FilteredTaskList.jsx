@@ -16,6 +16,7 @@ export default function FilteredTaskList({
   onChange,
   onDelete,
   onOpen,
+  onOpenFloating,
   emptyTitle,
   emptyHint,
   countLabel = 'tareas',
@@ -77,6 +78,7 @@ export default function FilteredTaskList({
         onChange={onChange}
         onDelete={onDelete}
         onOpen={onOpen}
+        onOpenFloating={onOpenFloating}
         emptyTitle={emptyTitle}
         emptyHint={emptyHint}
       />

@@ -15,6 +15,7 @@ export default function TaskItem({
   onChange,
   onDelete,
   onOpen,
+  onOpenFloating,
   busy,
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -43,6 +44,7 @@ export default function TaskItem({
                 className="task__title-wrap"
                 onClick={(event) => {
                   event.stopPropagation();
+                  console.log('Tarea (inline) — click en título:', task.id);
                   onOpen?.(task.id);
                 }}
               >
@@ -72,14 +74,26 @@ export default function TaskItem({
               </span>
             </div>
 
-            <div className="task__info">
+            <div
+              className="task__info"
+              onClick={() => {
+                console.log('Tarea (flotante) — click en info:', task.id);
+                onOpenFloating?.(task.id);
+              }}
+            >
               <span className="task__label">Estado:</span>
               <span className="task__value">{STATUS_LABELS[task.status] ?? task.status}</span>
               <span className="task__label">Prioridad:</span>
               <span className="task__value">{PRIORITY_LABELS[task.priority] ?? task.priority}</span>
             </div>
 
-            <div className="task__categories-row">
+            <div
+              className="task__categories-row"
+              onClick={() => {
+                console.log('Tarea (flotante) — click en categorías:', task.id);
+                onOpenFloating?.(task.id);
+              }}
+            >
               <span className="task__label">Categorías:</span>
               {task.categories?.length > 0 ? (
                 task.categories.map((category) => (
@@ -90,40 +104,70 @@ export default function TaskItem({
               ) : null}
             </div>
 
-            <div className="task__pending-row">
+            <div
+              className="task__pending-row"
+              onClick={() => {
+                console.log('Tarea (flotante) — click en pendiente:', task.id);
+                onOpenFloating?.(task.id);
+              }}
+            >
               <span className="task__label">Pendiente:</span>
               <span className="task__value">{pendingSubtasks}</span>
             </div>
 
-            <div className="task__descripcion-row">
+            <div
+              className="task__descripcion-row"
+              onClick={() => {
+                console.log('Tarea (flotante) — click en descripción:', task.id);
+                onOpenFloating?.(task.id);
+              }}
+            >
               <span className="task__label">Descripcion:</span>
               <span className="task__value">{task.description ?? ''}</span>
             </div>
 
-            <div className="task__calificacion-row">
+            <div
+              className="task__calificacion-row"
+              onClick={() => {
+                console.log('Tarea (flotante) — click en calificación:', task.id);
+                onOpenFloating?.(task.id);
+              }}
+            >
               <span className="task__label">Calificacion:</span>
               <span className="task__value">{task.calificacion ?? ''}</span>
               <span className="task__separator">/</span>
               <span className="task__value">{task.ponderacion ?? ''}</span>
             </div>
 
-            <div className="task__presentado-row">
+            <div
+              className="task__presentado-row"
+              onClick={() => {
+                console.log('Tarea (flotante) — click en presentado:', task.id);
+                onOpenFloating?.(task.id);
+              }}
+            >
               <span className="task__label">Presentado:</span>
               <span className={`task__value ${task.presentado ? 'task__value--yes' : 'task__value--no'}`}>
                 {task.presentado ? 'Si' : 'No'}
               </span>
             </div>
-          </div>
 
-          <div className="task__due-row">
-            <span className="task__label">Fecha límite:</span>
-            <span className={`task__due ${isTaskOverdue(task) ? 'task__due--overdue' : ''}`}>
-              {task.dueDate
-                ? isTaskOverdue(task)
-                  ? `Venció el ${formatDateOnly(task.dueDate)}`
-                  : formatDateOnly(task.dueDate)
-                : ''}
-            </span>
+            <div
+              className="task__due-row"
+              onClick={() => {
+                console.log('Tarea (flotante) — click en fecha límite:', task.id);
+                onOpenFloating?.(task.id);
+              }}
+            >
+              <span className="task__label">Fecha límite:</span>
+              <span className={`task__due ${isTaskOverdue(task) ? 'task__due--overdue' : ''}`}>
+                {task.dueDate
+                  ? isTaskOverdue(task)
+                    ? `Venció el ${formatDateOnly(task.dueDate)}`
+                    : formatDateOnly(task.dueDate)
+                  : ''}
+              </span>
+            </div>
           </div>
 
           <button
@@ -255,7 +299,10 @@ function SubtaskTree({
             <button
               type="button"
               className="task__subtask"
-              onClick={() => onOpen?.(subtask.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpen?.(subtask.id);
+              }}
               title="Abrir detalle de la subtarea"
             >
               <span className="task__subtask-title">{subtask.title}</span>
